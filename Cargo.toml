@@ -1,0 +1,11 @@
+[workspace]
+
+members = [
+    "nethercade_core",
+    "nethercade_console",
+]
+
+[workspace.dependencies]
+hashbrown = "0.15"
+serde = "1.0"
+image = "0.25"
