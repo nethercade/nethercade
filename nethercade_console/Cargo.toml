@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 nethercade_core = { path = "../nethercade_core" }
 
-winit = "0.30"
+eframe = { version = "0.30", features = ["wgpu"] }
 wgpu = "23.0"
 rodio = "0.20"
+ggrs = "0.11"
