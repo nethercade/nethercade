@@ -1,0 +1,7 @@
+[package]
+name = "nethercade_bundler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nethercade_core = { path = "../nethercade_core" }

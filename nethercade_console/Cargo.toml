@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+nethercade_core = { path = "../nethercade_core" }
+
 winit = "0.30"
 wgpu = "23.0"
 rodio = "0.20"

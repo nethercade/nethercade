@@ -953,9 +953,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nethercade_bundler"
+version = "0.1.0"
+dependencies = [
+ "nethercade_core",
+]
+
+[[package]]
 name = "nethercade_console"
 version = "0.1.0"
 dependencies = [
+ "nethercade_core",
  "rodio",
  "wgpu",
  "winit",

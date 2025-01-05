@@ -1,11 +1,13 @@
 [workspace]
 
 members = [
-    "nethercade_core",
+    "nethercade_bundler",
     "nethercade_console",
+    "nethercade_core",
 ]
 
 [workspace.dependencies]
 hashbrown = "0.15"
 serde = "1.0"
 image = "0.25"
+wasmtime = "28"
