@@ -3,7 +3,7 @@ use eframe::{
     egui_wgpu,
 };
 
-use crate::graphics::*;
+use crate::graphics::{VirtualGpuCallback, VirtualGpuResources};
 
 pub struct ConsoleApp {
     frame_count: usize,
@@ -41,8 +41,6 @@ impl eframe::App for ConsoleApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             self.frame_count += 1;
-            ui.label("Application");
-            ui.label(format!("{}", self.frame_count));
 
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
                 let (rect, _response) =

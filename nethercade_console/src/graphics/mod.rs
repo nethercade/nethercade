@@ -1,2 +1,2 @@
 mod virtual_gpu;
-pub use virtual_gpu::{VirtualGpuCallback, VirtualGpuResources};
+pub use virtual_gpu::*;
