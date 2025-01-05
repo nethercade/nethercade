@@ -3,10 +3,16 @@ name = "nethercade_console"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "console"
+path = "src/main.rs"
+
 [dependencies]
 nethercade_core = { path = "../nethercade_core" }
 
 eframe = { version = "0.30", features = ["wgpu"] }
-wgpu = "23.0"
 rodio = "0.20"
 ggrs = "0.11"
+glam = "0.29"
+image = "0.25"
+wasmtime = "28.0.0"

@@ -1,6 +1,8 @@
 mod console_app;
 use console_app::*;
 
+mod graphics;
+
 use eframe::egui;
 
 fn main() {
@@ -8,8 +10,10 @@ fn main() {
 
     // TODO: Parse the target game to pass into resolution
     // TODO: Make this refresh instead of be event driven
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+        centered: true,
         ..Default::default()
     };
 

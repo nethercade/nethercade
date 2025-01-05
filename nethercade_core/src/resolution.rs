@@ -1,8 +1,12 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Resolution {
-    Full,   // 1920x1080
-    High,   // 960x540
-    Medium, // 640x360
-    Low,    // 480x270
+    Full, // 1920x1080
+    #[default]
+    High, // 960x540
+    Retro, // 640x360
+    Compact, // 480x270
 }
 
 impl Resolution {
@@ -11,8 +15,8 @@ impl Resolution {
         match self {
             Resolution::Full => (1920, 1080),
             Resolution::High => (960, 540),
-            Resolution::Medium => (640, 360),
-            Resolution::Low => (480, 270),
+            Resolution::Retro => (640, 360),
+            Resolution::Compact => (480, 270),
         }
     }
 }
