@@ -1,6 +1,7 @@
+use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Encode, Decode)]
 pub enum Resolution {
     Full, // 1920x1080
     #[default]

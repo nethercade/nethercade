@@ -1,18 +1,19 @@
+use std::io::Read;
+
 use eframe::{
     egui::{self, Sense},
     egui_wgpu,
 };
+use nethercade_core::Rom;
 
-use crate::graphics::{VirtualGpuCallback, VirtualGpuResources};
+use crate::{
+    console::Console,
+    graphics::{VirtualGpuCallback, VirtualGpuResources},
+};
 
+#[derive(Default)]
 pub struct ConsoleApp {
-    frame_count: usize,
-}
-
-impl Default for ConsoleApp {
-    fn default() -> Self {
-        Self { frame_count: 0 }
-    }
+    console: Option<Console>,
 }
 
 impl ConsoleApp {
@@ -38,22 +39,47 @@ impl ConsoleApp {
 impl eframe::App for ConsoleApp {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         // TODO: Render a File Menu
+        egui::CentralPanel::default().show(ctx, |ui| match &self.console {
+            Some(_) => {
+                egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                    let (rect, _response) =
+                        ui.allocate_exact_size(egui::Vec2::splat(300.0), Sense::click());
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            self.frame_count += 1;
-
-            egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                let (rect, _response) =
-                    ui.allocate_exact_size(egui::Vec2::splat(300.0), Sense::click());
-
-                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                    rect,
-                    VirtualGpuCallback,
-                ));
-            });
+                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                        rect,
+                        VirtualGpuCallback,
+                    ));
+                });
+            }
+            None => {
+                if ui.button("Load Rom").clicked() {
+                    if let Some(rom) = try_load_rom() {
+                        self.console = Some(Console::new(&rom.code));
+                    }
+                }
+            }
         });
 
         // Render continiously
         ctx.request_repaint();
+    }
+}
+
+fn try_load_rom() -> Option<Rom> {
+    // TODO: Add filters for .nzrom and .wasm
+    let path = rfd::FileDialog::new().pick_file()?;
+
+    if path.ends_with(".nzrom") {
+        let mut file = std::fs::File::open(path).ok()?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).ok()?;
+        Some(bitcode::decode(&bytes).ok()?)
+    } else if path.ends_with(".wasm") {
+        let mut file = std::fs::File::open(path).ok()?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).ok()?;
+        Some(Rom::from_code(&bytes))
+    } else {
+        panic!("Invalid file")
     }
 }

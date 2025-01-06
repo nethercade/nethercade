@@ -2,6 +2,7 @@ mod console_app;
 use console_app::*;
 
 mod audio;
+mod console;
 mod graphics;
 
 use eframe::egui;

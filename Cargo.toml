@@ -20,4 +20,5 @@ hashbrown = "0.15"
 image = "0.25"
 serde = "1.0"
 wasmtime = "28"
-zstd = "0.13.2"
+zstd = "0.13"
+bitcode = { version = "0.6", features = ["derive"] }
