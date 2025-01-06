@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::{ffi::OsStr, io::Read};
 
 use eframe::{
     egui::{self, Sense},
@@ -54,7 +54,7 @@ impl eframe::App for ConsoleApp {
             None => {
                 if ui.button("Load Rom").clicked() {
                     if let Some(rom) = try_load_rom() {
-                        self.console = Some(Console::new(&rom.code));
+                        self.console = Some(Console::new(&rom));
                     }
                 }
             }
@@ -69,17 +69,19 @@ fn try_load_rom() -> Option<Rom> {
     // TODO: Add filters for .nzrom and .wasm
     let path = rfd::FileDialog::new().pick_file()?;
 
-    if path.ends_with(".nzrom") {
-        let mut file = std::fs::File::open(path).ok()?;
-        let mut bytes = Vec::new();
-        file.read_to_end(&mut bytes).ok()?;
-        Some(bitcode::decode(&bytes).ok()?)
-    } else if path.ends_with(".wasm") {
-        let mut file = std::fs::File::open(path).ok()?;
-        let mut bytes = Vec::new();
-        file.read_to_end(&mut bytes).ok()?;
-        Some(Rom::from_code(&bytes))
-    } else {
-        panic!("Invalid file")
+    match path.extension().and_then(OsStr::to_str) {
+        Some("nzrom") => {
+            let mut file = std::fs::File::open(path).ok()?;
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes).ok()?;
+            Some(bitcode::decode(&bytes).ok()?)
+        }
+        Some("wasm") => {
+            let mut file = std::fs::File::open(path).ok()?;
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes).ok()?;
+            Some(Rom::from_code(&bytes))
+        }
+        _ => panic!("Invalid File"),
     }
 }

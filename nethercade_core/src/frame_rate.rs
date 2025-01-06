@@ -1,7 +1,7 @@
 use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Encode, Decode)]
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Encode, Decode)]
 pub enum FrameRate {
     UltraFast,
     #[default]
@@ -20,7 +20,7 @@ impl FrameRate {
         }
     }
 
-    pub const fn frames_per_second(self) -> usize {
+    pub const fn frames_per_second(&self) -> usize {
         match self {
             FrameRate::UltraFast => 120,
             FrameRate::Fast => 60,
@@ -29,7 +29,7 @@ impl FrameRate {
         }
     }
 
-    pub const fn default_input_delay(self) -> usize {
+    pub const fn default_input_delay(&self) -> usize {
         match self {
             FrameRate::UltraFast => 3,
             FrameRate::Fast => 2,
@@ -38,7 +38,7 @@ impl FrameRate {
         }
     }
 
-    pub fn frame_time(self) -> f32 {
+    pub fn frame_time(&self) -> f32 {
         (self.frames_per_second() as f32).recip()
     }
 }
