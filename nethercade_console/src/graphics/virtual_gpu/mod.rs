@@ -16,7 +16,6 @@ mod virtual_render_pass;
 use std::sync::Arc;
 
 use environment_map::ENVIRONMENT_MAP_BIND_GROUP;
-use glam::Mat4;
 use nethercade_core::Rom;
 pub use virtual_gpu_callback::*;
 
@@ -28,7 +27,6 @@ pub const VERTEX_BUFFER_INDEX: u32 = 0;
 pub const INSTANCE_BUFFER_INDEX: u32 = 1;
 
 use eframe::wgpu;
-use virtual_render_pass::Command;
 
 pub struct VirtualGpu {
     pub device: Arc<wgpu::Device>,
@@ -63,7 +61,7 @@ impl VirtualGpu {
         let camera = camera::Camera::new(device, rom);
         let mut textures = textures::Textures::new(device, rom);
         let lights = lights::Lights::new(device);
-        let environment_map = environment_map::EnvironmentMap::new(device, &queue);
+        let environment_map = environment_map::EnvironmentMap::new(device, queue);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -94,21 +92,21 @@ impl VirtualGpu {
             device: device.clone(),
             queue: queue.clone(),
             render_pipelines: generate_render_pipelines(
-                &device,
+                device,
                 &shader,
                 &render_pipeline_layout,
                 format,
             ),
             textures,
-            quad_renderer: quad_renderer::QuadRenderer::new(&device, &queue),
+            quad_renderer: quad_renderer::QuadRenderer::new(device, queue),
             preloaded_renderer: preloaded_renderer::PreloadedRenderer::new(),
-            immediate_renderer: immediate_renderer::ImmediateRenderer::new(&device),
+            immediate_renderer: immediate_renderer::ImmediateRenderer::new(device),
             camera,
             lights,
             instance_buffer,
             virtual_render_pass: virtual_render_pass::VirtualRenderPass::new(),
             environment_map,
-            frame_buffer: Arc::new(frame_buffer::FrameBuffer::new(&device, rom, format)),
+            frame_buffer: Arc::new(frame_buffer::FrameBuffer::new(device, rom, format)),
         }
     }
 
@@ -175,40 +173,6 @@ impl VirtualGpu {
 
         self.queue.submit(std::iter::once(encoder.finish()));
         self.virtual_render_pass.reset();
-    }
-
-    pub fn push_matrix(&mut self, matrix: Mat4) {
-        let offset = self.virtual_render_pass.inistance_count * size_of::<Mat4>() as u64;
-        self.queue
-            .write_buffer(&self.instance_buffer, offset, bytemuck::bytes_of(&matrix));
-        self.virtual_render_pass
-            .commands
-            .push(Command::SetModelMatrix);
-        self.virtual_render_pass.inistance_count += 1;
-    }
-
-    fn draw_static_mesh(&mut self, index: usize) {
-        self.virtual_render_pass
-            .commands
-            .push(Command::DrawStaticMesh(index))
-    }
-
-    fn draw_static_mesh_indexed(&mut self, index: usize) {
-        self.virtual_render_pass
-            .commands
-            .push(Command::DrawStaticMeshIndexed(index))
-    }
-
-    fn draw_sprite(&mut self, index: usize) {
-        self.virtual_render_pass
-            .commands
-            .push(Command::DrawSprite(index));
-    }
-
-    pub fn set_texture(&mut self, tex_id: usize) {
-        self.virtual_render_pass
-            .commands
-            .push(Command::SetTexture(tex_id));
     }
 }
 

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use eframe::wgpu;
 use glam::Mat4;
 use nethercade_core::Rom;
-use wasmtime::{Caller, Config, Engine, Func, Instance, Linker, Module, Store};
+use wasmtime::{Config, Engine, Instance, Linker, Module, Store};
 
 mod wasm_contexts;
 use wasm_contexts::WasmContexts;

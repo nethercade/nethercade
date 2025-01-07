@@ -9,6 +9,8 @@ use crate::graphics::{pipeline::Pipeline, VirtualGpu};
 
 use super::WasmContexts;
 
+// TODO: This could likely be replaced with just a VRenderPass to save lots
+// of time during startup
 pub struct Draw3dContext {
     pub vgpu: VirtualGpu,
 }
@@ -26,6 +28,8 @@ impl Draw3dContext {
     }
 
     pub fn link(linker: &mut Linker<WasmContexts>) {
+        // TODO: Add logic which only allows these during drawing.
+        // Drawing
         linker
             .func_wrap(
                 "env",
@@ -43,5 +47,19 @@ impl Draw3dContext {
                 },
             )
             .unwrap();
+
+        // TODO: draw_tri_list_indexed
+        // TODO: push_light
+        // TODO: push_matrix
+        // TODO: draw_static_mesh
+        // TODO: draw_static_mesh_indexed
+        // TODO: draw_sprite
+        // TODO: set_texture
+
+        // TODO: Add logic which only allows these during init.
+        // Loading
+        // TODO: load_texture
+        // TODO: load_static_mesh
+        // TODO: load_static_mesh_indexed
     }
 }
