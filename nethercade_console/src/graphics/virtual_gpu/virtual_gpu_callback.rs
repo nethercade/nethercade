@@ -1,8 +1,12 @@
+use std::sync::Arc;
+
 use eframe::{egui, egui_wgpu, wgpu};
 
-use super::VirtualGpuResources;
+use super::frame_buffer::{FrameBuffer, FRAME_BUFFER_BIND_GROUP_INDEX};
 
-pub struct VirtualGpuCallback;
+pub struct VirtualGpuCallback {
+    pub frame_buffer: Arc<FrameBuffer>,
+}
 
 impl egui_wgpu::CallbackTrait for VirtualGpuCallback {
     fn prepare(
@@ -20,10 +24,14 @@ impl egui_wgpu::CallbackTrait for VirtualGpuCallback {
         &self,
         _info: egui::PaintCallbackInfo,
         render_pass: &mut wgpu::RenderPass<'static>,
-        resources: &egui_wgpu::CallbackResources,
+        _resources: &egui_wgpu::CallbackResources,
     ) {
-        let resource: &VirtualGpuResources = resources.get().unwrap();
-        render_pass.set_pipeline(&resource.pipeline);
-        render_pass.draw(0..3, 0..1);
+        render_pass.set_pipeline(&self.frame_buffer.pipeline);
+        render_pass.set_bind_group(
+            FRAME_BUFFER_BIND_GROUP_INDEX,
+            &self.frame_buffer.texture_bind_group,
+            &[],
+        );
+        render_pass.draw(0..4, 0..1);
     }
 }

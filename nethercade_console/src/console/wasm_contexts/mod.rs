@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use eframe::wgpu;
 use nethercade_core::Rom;
 
 mod data;
@@ -10,14 +13,19 @@ use wasmtime::Linker;
 
 pub struct WasmContexts {
     data: DataContext,
-    draw_3d: Draw3dContext,
+    pub draw_3d: Draw3dContext,
 }
 
 impl WasmContexts {
-    pub fn new(rom: &Rom) -> Self {
+    pub fn new(
+        rom: &Rom,
+        device: &Arc<wgpu::Device>,
+        queue: &Arc<wgpu::Queue>,
+        format: wgpu::TextureFormat,
+    ) -> Self {
         Self {
             data: DataContext::new(rom),
-            draw_3d: Draw3dContext::new(rom),
+            draw_3d: Draw3dContext::new(rom, device, queue, format),
         }
     }
 
