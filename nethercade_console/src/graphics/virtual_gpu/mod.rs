@@ -3,7 +3,7 @@ mod draw_3d_context;
 mod environment_map;
 pub mod frame_buffer;
 mod immediate_renderer;
-mod lights;
+pub mod lights;
 mod mesh;
 pub mod pipeline;
 mod preloaded_renderer;
