@@ -1,5 +1,5 @@
 use eframe::wgpu;
-use nethercade_core::Rom;
+use nethercade_core::Resolution;
 use wgpu::TextureViewDescriptor;
 
 use super::textures;
@@ -13,8 +13,8 @@ pub struct FrameBuffer {
 }
 
 impl FrameBuffer {
-    pub fn new(device: &wgpu::Device, rom: &Rom, format: wgpu::TextureFormat) -> Self {
-        let (width, height) = rom.resolution.dimensions();
+    pub fn new(device: &wgpu::Device, resolution: Resolution, format: wgpu::TextureFormat) -> Self {
+        let (width, height) = resolution.dimensions();
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {

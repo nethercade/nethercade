@@ -1,6 +1,6 @@
 use eframe::wgpu;
 use glam::{Mat4, Vec3A};
-use nethercade_core::Rom;
+use nethercade_core::Resolution;
 
 pub type CameraUniformType = [f32; 52];
 
@@ -21,7 +21,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(device: &wgpu::Device, rom: &Rom) -> Self {
+    pub fn new(device: &wgpu::Device, resolution: Resolution) -> Self {
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
@@ -52,7 +52,7 @@ impl Camera {
             label: Some("camera_bind_group"),
         });
 
-        let (width, height) = rom.resolution.dimensions();
+        let (width, height) = resolution.dimensions();
 
         Self {
             eye: Vec3A::new(0.0, 1.0, 5.0),

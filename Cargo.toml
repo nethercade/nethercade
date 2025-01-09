@@ -12,7 +12,7 @@ members = [
 ]
 
 [profile.release]
-lto = true
+lto = "fat"
 
 [workspace.dependencies]
 bytemuck = "1.21"

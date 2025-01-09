@@ -1,5 +1,4 @@
 mod camera;
-mod draw_3d_context;
 mod environment_map;
 pub mod frame_buffer;
 mod immediate_renderer;
@@ -11,12 +10,13 @@ mod quad_renderer;
 mod textures;
 mod vertex;
 mod virtual_gpu_callback;
-mod virtual_render_pass;
+pub mod virtual_render_pass;
 
 use std::sync::Arc;
 
 use environment_map::ENVIRONMENT_MAP_BIND_GROUP;
-use nethercade_core::Rom;
+use nethercade_core::Resolution;
+use textures::DepthTexture;
 pub use virtual_gpu_callback::*;
 
 pub const CAMERA_BIND_GROUP_INDEX: u32 = 0;
@@ -27,6 +27,7 @@ pub const VERTEX_BUFFER_INDEX: u32 = 0;
 pub const INSTANCE_BUFFER_INDEX: u32 = 1;
 
 use eframe::wgpu;
+use virtual_render_pass::VirtualRenderPass;
 
 pub struct VirtualGpu {
     pub device: Arc<wgpu::Device>,
@@ -37,7 +38,6 @@ pub struct VirtualGpu {
     pub lights: lights::Lights,
     pub environment_map: environment_map::EnvironmentMap,
     pub instance_buffer: wgpu::Buffer,
-    pub virtual_render_pass: virtual_render_pass::VirtualRenderPass,
     pub frame_buffer: Arc<frame_buffer::FrameBuffer>,
 
     pub immediate_renderer: immediate_renderer::ImmediateRenderer,
@@ -48,7 +48,7 @@ pub struct VirtualGpu {
 
 impl VirtualGpu {
     pub fn new(
-        rom: &Rom,
+        resolution: Resolution,
         device: &Arc<wgpu::Device>,
         queue: &Arc<wgpu::Queue>,
         format: wgpu::TextureFormat,
@@ -58,8 +58,8 @@ impl VirtualGpu {
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
-        let camera = camera::Camera::new(device, rom);
-        let mut textures = textures::Textures::new(device, rom);
+        let camera = camera::Camera::new(device, resolution);
+        let mut textures = textures::Textures::new(device, resolution);
         let lights = lights::Lights::new(device);
         let environment_map = environment_map::EnvironmentMap::new(device, queue);
 
@@ -104,13 +104,12 @@ impl VirtualGpu {
             camera,
             lights,
             instance_buffer,
-            virtual_render_pass: virtual_render_pass::VirtualRenderPass::new(),
             environment_map,
-            frame_buffer: Arc::new(frame_buffer::FrameBuffer::new(device, rom, format)),
+            frame_buffer: Arc::new(frame_buffer::FrameBuffer::new(device, resolution, format)),
         }
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self, vrp: &VirtualRenderPass) {
         let view = &self.frame_buffer.view;
 
         let mut encoder = self
@@ -137,7 +136,7 @@ impl VirtualGpu {
                     },
                 })],
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.textures.depth_texture.view,
+                    view: &self.textures.depth_texture.borrow().view,
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(f32::NEG_INFINITY),
                         store: wgpu::StoreOp::Store,
@@ -168,11 +167,15 @@ impl VirtualGpu {
             );
             render_pass.set_vertex_buffer(INSTANCE_BUFFER_INDEX, self.instance_buffer.slice(..));
 
-            self.virtual_render_pass.execute(&mut render_pass, self);
+            vrp.execute(&mut render_pass, self);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
-        self.virtual_render_pass.reset();
+    }
+
+    pub fn resize(&self, resolution: Resolution) {
+        *self.textures.depth_texture.borrow_mut() =
+            DepthTexture::create_depth_texture(&self.device, resolution);
     }
 }
 

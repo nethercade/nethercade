@@ -1,11 +1,13 @@
 use eframe::wgpu;
 use image::ImageReader;
-use nethercade_core::Rom;
+use nethercade_core::Resolution;
+
+use std::cell::RefCell;
 
 pub struct Textures {
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub textures: Vec<Texture>,
-    pub depth_texture: DepthTexture,
+    pub depth_texture: RefCell<DepthTexture>,
 }
 
 pub const fn bind_group_layout_desc() -> &'static wgpu::BindGroupLayoutDescriptor<'static> {
@@ -33,13 +35,13 @@ pub const fn bind_group_layout_desc() -> &'static wgpu::BindGroupLayoutDescripto
 }
 
 impl Textures {
-    pub fn new(device: &wgpu::Device, rom: &Rom) -> Self {
+    pub fn new(device: &wgpu::Device, resolution: Resolution) -> Self {
         let bind_group_layout = device.create_bind_group_layout(bind_group_layout_desc());
 
         Self {
             bind_group_layout,
             textures: Vec::new(),
-            depth_texture: DepthTexture::create_depth_texture(device, rom, "depth_texture"),
+            depth_texture: RefCell::new(DepthTexture::create_depth_texture(device, resolution)),
         }
     }
 
@@ -136,15 +138,15 @@ pub struct DepthTexture {
 impl DepthTexture {
     pub const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float; // 1.
 
-    pub fn create_depth_texture(device: &wgpu::Device, rom: &Rom, label: &str) -> Self {
-        let (width, height) = rom.resolution.dimensions();
+    pub fn create_depth_texture(device: &wgpu::Device, resolution: Resolution) -> Self {
+        let (width, height) = resolution.dimensions();
         let size = wgpu::Extent3d {
             width: width.max(1),
             height: height.max(1),
             depth_or_array_layers: 1,
         };
         let desc = wgpu::TextureDescriptor {
-            label: Some(label),
+            label: Some("depth texture"),
             size,
             mip_level_count: 1,
             sample_count: 1,
