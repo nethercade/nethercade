@@ -6,7 +6,7 @@ use nethercade_core::{Resolution, Rom};
 use wasmtime::{Config, Engine, Instance, Linker, Module, Store};
 
 mod wasm_contexts;
-use wasm_contexts::WasmContexts;
+use wasm_contexts::{DrawContextState, WasmContexts};
 
 use crate::graphics::{frame_buffer::FrameBuffer, VirtualGpu};
 
@@ -31,13 +31,21 @@ impl GameInstance {
     }
 
     pub fn draw(&mut self) {
-        let ctx = &mut self.store.data_mut().draw_3d;
-        ctx.vrp.reset();
-        ctx.push_matrix(Mat4::IDENTITY);
-        ctx.set_texture(0);
+        {
+            let ctx = &mut self.store.data_mut().draw_3d;
+            ctx.vrp.reset();
+            ctx.push_matrix(Mat4::IDENTITY);
+            ctx.set_texture(0);
+            ctx.state = DrawContextState::Draw;
+        }
 
         self.call_wasm_func("draw");
-        self.store.data_mut().draw_3d.render();
+
+        {
+            let ctx = &mut self.store.data_mut().draw_3d;
+            ctx.state = DrawContextState::Invalid;
+            ctx.render();
+        }
     }
 }
 
@@ -79,10 +87,14 @@ impl Console {
 
         self.vgpu.borrow_mut().resize(rom.resolution);
 
-        self.game = Some(GameInstance {
+        let mut game_instance = GameInstance {
             store,
             instance,
             rom,
-        });
+        };
+
+        game_instance.call_wasm_func("init");
+
+        self.game = Some(game_instance);
     }
 }

@@ -16,6 +16,7 @@ use std::sync::Arc;
 
 use environment_map::ENVIRONMENT_MAP_BIND_GROUP;
 use nethercade_core::Resolution;
+use pipeline::Pipeline;
 use textures::DepthTexture;
 pub use virtual_gpu_callback::*;
 
@@ -57,7 +58,6 @@ impl VirtualGpu {
             label: Some("Master Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
-
         let camera = camera::Camera::new(device, resolution);
         let mut textures = textures::Textures::new(device, resolution);
         let lights = lights::Lights::new(device);
@@ -75,7 +75,7 @@ impl VirtualGpu {
                 push_constant_ranges: &[],
             });
 
-        textures.load_texture(
+        textures.load_texture_native(
             device,
             queue,
             "nethercade_console/assets/default texture.png",
@@ -176,6 +176,29 @@ impl VirtualGpu {
     pub fn resize(&self, resolution: Resolution) {
         *self.textures.depth_texture.borrow_mut() =
             DepthTexture::create_depth_texture(&self.device, resolution);
+    }
+
+    pub fn load_static_mesh(&mut self, data: &[f32], pipeline: Pipeline) -> usize {
+        self.preloaded_renderer
+            .load_static_mesh(&self.device, &self.queue, data, pipeline)
+    }
+    pub fn load_static_mesh_indexed(
+        &mut self,
+        data: &[f32],
+        indices: &[u16],
+        pipeline: Pipeline,
+    ) -> usize {
+        self.preloaded_renderer.load_static_mesh_indexed(
+            &self.device,
+            &self.queue,
+            data,
+            indices,
+            pipeline,
+        )
+    }
+    pub fn load_texture_raw(&mut self, data: &[u8], has_alpha: bool) -> usize {
+        self.textures
+            .load_texture_raw(&self.device, &self.queue, data, has_alpha)
     }
 }
 

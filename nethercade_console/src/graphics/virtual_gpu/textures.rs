@@ -45,7 +45,18 @@ impl Textures {
         }
     }
 
-    pub fn load_texture(
+    pub fn load_texture_raw(
+        &mut self,
+        _device: &wgpu::Device,
+        _queue: &wgpu::Queue,
+        _data: &[u8],
+        _has_alpha: bool,
+    ) -> usize {
+        // TODO: Write this
+        todo!()
+    }
+
+    pub fn load_texture_native(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,

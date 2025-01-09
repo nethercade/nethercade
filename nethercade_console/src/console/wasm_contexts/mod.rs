@@ -6,6 +6,7 @@ mod data;
 use data::*;
 
 mod draw_3d;
+pub use draw_3d::DrawContextState;
 use draw_3d::*;
 
 use wasmtime::Linker;
