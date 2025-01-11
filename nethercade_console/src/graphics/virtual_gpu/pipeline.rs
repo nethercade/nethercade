@@ -67,14 +67,6 @@ impl Pipeline {
         }
     }
 
-    pub fn can_reduce(&self, into: Self) -> bool {
-        let color = !into.has_color() || self.has_color();
-        let uv = !into.has_uv() || self.has_uv();
-        let lighting = !into.has_lighting() || self.has_lighting();
-
-        color && uv && lighting
-    }
-
     pub fn get_pipeline_buffers(&self) -> [wgpu::VertexBufferLayout<'static>; 2] {
         [self.get_vertex_buffer_layout(), vertex::model_matrix()]
     }
@@ -91,53 +83,62 @@ impl Pipeline {
         }
     }
 
-    pub fn has_color(&self) -> bool {
-        match self {
-            Pipeline::Color => true,
-            Pipeline::Uv => false,
-            Pipeline::ColorUv => true,
-            Pipeline::ColorLit => true,
-            Pipeline::UvLit => false,
-            Pipeline::ColorUvLit => true,
-            Pipeline::Quad2d => true,
-        }
-    }
+    // These are used for Importers
+    // pub fn can_reduce(&self, into: Self) -> bool {
+    //     let color = !into.has_color() || self.has_color();
+    //     let uv = !into.has_uv() || self.has_uv();
+    //     let lighting = !into.has_lighting() || self.has_lighting();
 
-    pub fn has_uv(&self) -> bool {
-        match self {
-            Pipeline::Color => false,
-            Pipeline::Uv => true,
-            Pipeline::ColorUv => true,
-            Pipeline::ColorLit => false,
-            Pipeline::UvLit => true,
-            Pipeline::ColorUvLit => true,
-            Pipeline::Quad2d => true,
-        }
-    }
+    //     color && uv && lighting
+    // }
 
-    pub fn has_lighting(&self) -> bool {
-        match self {
-            Pipeline::Color => false,
-            Pipeline::Uv => false,
-            Pipeline::ColorUv => false,
-            Pipeline::ColorLit => true,
-            Pipeline::UvLit => true,
-            Pipeline::ColorUvLit => true,
-            Pipeline::Quad2d => false,
-        }
-    }
+    // pub fn has_color(&self) -> bool {
+    //     match self {
+    //         Pipeline::Color => true,
+    //         Pipeline::Uv => false,
+    //         Pipeline::ColorUv => true,
+    //         Pipeline::ColorLit => true,
+    //         Pipeline::UvLit => false,
+    //         Pipeline::ColorUvLit => true,
+    //         Pipeline::Quad2d => true,
+    //     }
+    // }
 
-    pub fn lit(&self) -> Self {
-        match self {
-            Pipeline::Color => Pipeline::ColorLit,
-            Pipeline::Uv => Pipeline::UvLit,
-            Pipeline::ColorUv => Pipeline::ColorUvLit,
-            Pipeline::ColorLit => Pipeline::ColorLit,
-            Pipeline::UvLit => Pipeline::UvLit,
-            Pipeline::ColorUvLit => Pipeline::ColorUvLit,
-            Pipeline::Quad2d => panic!("Quad2d can't be lit"),
-        }
-    }
+    // pub fn has_uv(&self) -> bool {
+    //     match self {
+    //         Pipeline::Color => false,
+    //         Pipeline::Uv => true,
+    //         Pipeline::ColorUv => true,
+    //         Pipeline::ColorLit => false,
+    //         Pipeline::UvLit => true,
+    //         Pipeline::ColorUvLit => true,
+    //         Pipeline::Quad2d => true,
+    //     }
+    // }
+
+    // pub fn has_lighting(&self) -> bool {
+    //     match self {
+    //         Pipeline::Color => false,
+    //         Pipeline::Uv => false,
+    //         Pipeline::ColorUv => false,
+    //         Pipeline::ColorLit => true,
+    //         Pipeline::UvLit => true,
+    //         Pipeline::ColorUvLit => true,
+    //         Pipeline::Quad2d => false,
+    //     }
+    // }
+
+    // pub fn lit(&self) -> Self {
+    //     match self {
+    //         Pipeline::Color => Pipeline::ColorLit,
+    //         Pipeline::Uv => Pipeline::UvLit,
+    //         Pipeline::ColorUv => Pipeline::ColorUvLit,
+    //         Pipeline::ColorLit => Pipeline::ColorLit,
+    //         Pipeline::UvLit => Pipeline::UvLit,
+    //         Pipeline::ColorUvLit => Pipeline::ColorUvLit,
+    //         Pipeline::Quad2d => panic!("Quad2d can't be lit"),
+    //     }
+    // }
 
     pub fn get_shader(&self) -> usize {
         match self {

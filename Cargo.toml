@@ -16,7 +16,7 @@ lto = "fat"
 
 [workspace.dependencies]
 bytemuck = "1.21"
-hashbrown = "0.15"
+hashbrown = { version = "0.15", features = ["serde"] }
 image = "0.25"
 serde = "1.0"
 wasmtime = "28"

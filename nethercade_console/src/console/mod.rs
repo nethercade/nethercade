@@ -8,10 +8,15 @@ use wasmtime::{Config, Engine, Instance, Linker, Module, Store};
 mod wasm_contexts;
 use wasm_contexts::{DrawContextState, WasmContexts};
 
+mod input;
+pub use input::{LocalInputManager, LocalPlayerId, MouseEventCollector};
+
+mod network;
+
 use crate::graphics::{frame_buffer::FrameBuffer, VirtualGpu};
 
 pub struct GameInstance {
-    store: Store<WasmContexts>,
+    pub store: Store<WasmContexts>,
     instance: Instance,
     pub rom: Rom,
 }
@@ -81,14 +86,14 @@ impl Console {
         }
     }
 
-    pub fn load_rom(&mut self, rom: Rom, vgpu: Rc<RefCell<VirtualGpu>>) {
+    pub fn load_rom(&mut self, rom: Rom, vgpu: Rc<RefCell<VirtualGpu>>, num_players: usize) {
         let engine = Engine::new(&Config::default()).unwrap();
         let module = Module::from_binary(&engine, &rom.code).unwrap();
 
         let mut linker = Linker::new(&engine);
         WasmContexts::link(&mut linker);
 
-        let mut store = Store::new(&engine, WasmContexts::new(&rom, vgpu));
+        let mut store = Store::new(&engine, WasmContexts::new(&rom, vgpu, num_players));
         let instance = linker.instantiate(&mut store, &module).unwrap();
 
         self.vgpu.borrow_mut().resize(rom.resolution);

@@ -37,19 +37,19 @@ impl EnvironmentUniforms {
 impl EnvironmentMap {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
         const IMAGES: [&str; 6] = [
-            "nethercade_console/assets/skybox/right.jpg",
-            "nethercade_console/assets/skybox/left.jpg",
-            "nethercade_console/assets/skybox/top.jpg",
-            "nethercade_console/assets/skybox/bottom.jpg",
-            "nethercade_console/assets/skybox/front.jpg",
-            "nethercade_console/assets/skybox/back.jpg",
+            "nethercade_console/assets/skybox/right.png",
+            "nethercade_console/assets/skybox/left.png",
+            "nethercade_console/assets/skybox/top.png",
+            "nethercade_console/assets/skybox/bottom.png",
+            "nethercade_console/assets/skybox/front.png",
+            "nethercade_console/assets/skybox/back.png",
         ];
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Environment Map Texture"),
             size: wgpu::Extent3d {
-                width: 2048,
-                height: 2048,
+                width: 256,
+                height: 256,
                 // A cube has 6 sides, so we need 6 layers
                 depth_or_array_layers: 6,
             },
