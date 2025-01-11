@@ -26,6 +26,12 @@ impl GameInstance {
         }
     }
 
+    pub fn init(&mut self) {
+        self.store.data_mut().draw_3d.state = DrawContextState::Init;
+        self.call_wasm_func("init");
+        self.store.data_mut().draw_3d.state = DrawContextState::Invalid;
+    }
+
     pub fn update(&mut self) {
         self.call_wasm_func("update");
     }
@@ -93,7 +99,7 @@ impl Console {
             rom,
         };
 
-        game_instance.call_wasm_func("init");
+        game_instance.init();
 
         self.game = Some(game_instance);
     }

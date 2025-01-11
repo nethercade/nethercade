@@ -11,9 +11,6 @@ use nethercade_core::Resolution;
 fn main() {
     println!("Launching Console...");
 
-    // TODO: Parse the target game to pass into resolution
-    // TODO: Make this refresh instead of be event driven
-
     let dimensions = Resolution::Compact.dimensions();
 
     let options = eframe::NativeOptions {
