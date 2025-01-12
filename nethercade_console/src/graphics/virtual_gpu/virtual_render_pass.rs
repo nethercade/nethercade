@@ -5,7 +5,7 @@ pub struct VirtualRenderPass {
     pub commands: Vec<Command>,
 
     pub immediate_buffer_last_index: u64,
-    pub inistance_count: u64,
+    pub instance_count: u64,
 
     pub light_count: u64,
 }
@@ -24,7 +24,7 @@ impl VirtualRenderPass {
     pub fn new() -> Self {
         Self {
             commands: Vec::new(),
-            inistance_count: 0,
+            instance_count: 0,
             light_count: 0,
             immediate_buffer_last_index: 0,
         }
@@ -32,7 +32,7 @@ impl VirtualRenderPass {
 
     pub fn reset(&mut self) {
         self.commands.clear();
-        self.inistance_count = 0;
+        self.instance_count = 0;
         self.light_count = 0;
         self.immediate_buffer_last_index = 0;
     }

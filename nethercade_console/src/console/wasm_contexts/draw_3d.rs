@@ -113,14 +113,14 @@ impl Draw3dContext {
     }
 
     pub fn push_matrix(&mut self, matrix: Mat4) {
-        let offset = self.vrp.inistance_count * size_of::<Mat4>() as u64;
+        let offset = self.vrp.instance_count * size_of::<Mat4>() as u64;
         self.vgpu.borrow().queue.write_buffer(
             &self.vgpu.borrow().instance_buffer,
             offset,
             bytemuck::bytes_of(&matrix),
         );
         self.vrp.commands.push(Command::SetModelMatrix);
-        self.vrp.inistance_count += 1;
+        self.vrp.instance_count += 1;
     }
 
     pub fn draw_static_mesh(&mut self, index: usize) {
