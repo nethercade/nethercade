@@ -50,21 +50,48 @@ impl eframe::App for ConsoleApp {
         egui::CentralPanel::default().show(ctx, |ui| match &mut self.console.game {
             Some(game) => {
                 // Pre Update Input
-                // TODO: Clean this up
+
+                // Handle Keyboard
                 let held_keys = ctx.input(|i| i.keys_down.clone());
-                
-                let net_state = self.input_manager.generate_input_state(
-                    LocalPlayerId(0),
-                    &MouseEventCollector::default(),
-                    &held_keys,
-                    &self.gilrs,
-                );
+                // Handle Mouse
+                let mouse_events = frame_mouse_input(ctx);
 
-                game.store.data_mut().input.input_entries[0].current = net_state.input_state;
-                game.store.data_mut().input.input_entries[0].current_mouse = net_state.mouse_state;
+                egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                    let (width, height) = game.rom.resolution.dimensions();
+                    let (rect, response) = ui.allocate_exact_size(
+                        egui::Vec2::new(width as f32, height as f32),
+                        Sense::click(),
+                    );
 
-                game.update();
-                game.draw();
+                    let mouse_pos = if let Some(hover) = response.hover_pos() {
+                        let mut pos = hover - response.interact_rect.left_top();
+                        pos.x = pos.x.clamp(0.0, width as f32);
+                        pos.y = pos.y.clamp(0.0, height as f32);
+                        Some(pos)
+                    } else {
+                        None
+                    };
+
+                    let net_state = self.input_manager.generate_input_state(
+                        LocalPlayerId(0),
+                        &mouse_events,
+                        mouse_pos,
+                        &held_keys,
+                        &self.gilrs,
+                    );
+
+                    game.store.data_mut().input.input_entries[0].current = net_state.input_state;
+                    game.store.data_mut().input.input_entries[0].current_mouse =
+                        net_state.mouse_state;
+
+                    game.update();
+                    game.draw();
+
+                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                        rect,
+                        VirtualGpuCallback,
+                    ));
+                });
 
                 // Post Update Input
                 // TODO: Clean this up
@@ -77,26 +104,6 @@ impl eframe::App for ConsoleApp {
                         inputs.previous = inputs.current.buttons;
                         inputs.previous_mouse = inputs.current_mouse;
                     });
-                
-
-                egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                    let (width, height) = game.rom.resolution.dimensions();
-                    let (rect, response) = ui.allocate_exact_size(
-                        egui::Vec2::new(width as f32, height as f32),
-                        Sense::click(),
-                    );
-
-                    // TODO: Feed this into mouse input
-                    if let Some(hover) = response.hover_pos() {
-                        let _pos = hover - response.interact_rect.left_top();
-                        // This is the mouse position
-                    }
-
-                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                        rect,
-                        VirtualGpuCallback,
-                    ));
-                });
             }
             None => {
                 if ui.button("Load Rom").clicked() {
@@ -132,4 +139,69 @@ fn try_load_rom() -> Option<Rom> {
         }
         _ => panic!("Invalid File"),
     }
+}
+
+fn frame_mouse_input(ctx: &eframe::egui::Context) -> MouseEventCollector {
+    let mut mouse_events = MouseEventCollector::default();
+    ctx.input(|i| {
+        for event in &i.events {
+            match event {
+                egui::Event::Copy => (),
+                egui::Event::Cut => (),
+                egui::Event::Paste(_) => (),
+                egui::Event::Text(_) => (),
+                egui::Event::Key { .. } => (),
+                egui::Event::MouseMoved(..) => (),
+                egui::Event::PointerGone => (),
+                egui::Event::Zoom(_) => (),
+                egui::Event::Ime(_ime_event) => (),
+                egui::Event::Touch { .. } => (),
+                egui::Event::WindowFocused(_) => (),
+                egui::Event::AccessKitActionRequest(..) => (),
+                egui::Event::Screenshot { .. } => (),
+
+                egui::Event::PointerButton {
+                    button, pressed, ..
+                } => {
+                    if *pressed {
+                        match button {
+                            egui::PointerButton::Extra1 => (),
+                            egui::PointerButton::Extra2 => (),
+                            egui::PointerButton::Primary => {
+                                mouse_events.button_left = true;
+                            }
+                            egui::PointerButton::Secondary => {
+                                mouse_events.button_right = true;
+                            }
+                            egui::PointerButton::Middle => {
+                                mouse_events.button_middle = true;
+                            }
+                        }
+                    }
+                }
+                egui::Event::PointerMoved(vec2) => {
+                    mouse_events.delta_x += vec2.x as i16;
+                    mouse_events.delta_y += vec2.y as i16;
+                }
+                egui::Event::MouseWheel { delta, .. } => {
+                    let dx = delta.x;
+                    let dy = delta.y;
+
+                    if dx > 0.0 {
+                        mouse_events.wheel_right = true;
+                    } else if dx < 0.0 {
+                        mouse_events.wheel_left = true;
+                    }
+
+                    if dy > 0.0 {
+                        mouse_events.wheel_down = true;
+                    } else if dy < 0.0 {
+                        mouse_events.wheel_up = true;
+                    }
+                }
+            }
+        }
+    });
+
+    mouse_events
 }

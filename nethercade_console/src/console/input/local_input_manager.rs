@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use egui::Key;
+use egui::{Key, Vec2};
 use gilrs::{Axis, Button, Gamepad, GamepadId, Gilrs};
 
 use crate::console::network::NetworkInputState;
@@ -21,6 +21,9 @@ pub struct MouseEventCollector {
     pub wheel_right: bool,
     pub delta_x: i16,
     pub delta_y: i16,
+    pub button_left: bool,
+    pub button_right: bool,
+    pub button_middle: bool,
 }
 
 #[derive(Debug)]
@@ -43,6 +46,7 @@ impl LocalInputManager {
         &self,
         local_player: LocalPlayerId,
         mouse_events: &MouseEventCollector,
+        mouse_pos: Option<Vec2>,
         held_keys: &HashSet<Key>,
         gilrs: &Gilrs,
     ) -> NetworkInputState {
@@ -54,12 +58,11 @@ impl LocalInputManager {
             None => InputState::default(),
         };
 
-        // TODO: Update this to use the frame
-        let mouse_state = MouseState::default();
+        let mouse_state = generate_mouse_state(mouse_pos, mouse_events);
 
         NetworkInputState {
             input_state,
-            mouse_state: MouseState::default(),
+            mouse_state,
         }
     }
 
@@ -146,42 +149,34 @@ fn generate_emulated_state(
     output
 }
 
-// TODO: Update this to use the frame
-// fn generate_mouse_state(
-//     pixels: &Pixels,
-//     mouse_events: &MouseEventCollector,
-//     helper: &WinitInputHelper,
-// ) -> MouseState {
-//     let mut out = MouseState::default();
+fn generate_mouse_state(mouse_pos: Option<Vec2>, mouse_events: &MouseEventCollector) -> MouseState {
+    let mut out = MouseState::default();
 
-//     match helper
-//         .mouse()
-//         .map(|mouse| pixels.window_pos_to_pixel(mouse))
-//     {
-//         Some(Ok((x, y))) => {
-//             out.set_x_pos(x as u32);
-//             out.set_y_pos(y as u32);
-//         }
-//         _ => {
-//             out.set_x_pos(u32::MAX);
-//             out.set_y_pos(u32::MAX);
-//         }
-//     }
+    match mouse_pos {
+        Some(pos) => {
+            out.set_x_pos(pos.x as u32);
+            out.set_y_pos(pos.y as u32);
+        }
+        _ => {
+            out.set_x_pos(u32::MAX);
+            out.set_y_pos(u32::MAX);
+        }
+    }
 
-//     out.set_left_button(helper.mouse_held(0));
-//     out.set_right_button(helper.mouse_held(1));
-//     out.set_middle_button(helper.mouse_held(2));
+    out.set_left_button(mouse_events.button_left);
+    out.set_right_button(mouse_events.button_right);
+    out.set_middle_button(mouse_events.button_middle);
 
-//     out.set_x_delta(mouse_events.delta_x as i32);
-//     out.set_y_delta(mouse_events.delta_y as i32);
+    out.set_x_delta(mouse_events.delta_x as i32);
+    out.set_y_delta(mouse_events.delta_y as i32);
 
-//     out.set_wheel_up(mouse_events.wheel_up);
-//     out.set_wheel_down(mouse_events.wheel_down);
-//     out.set_wheel_left(mouse_events.wheel_left);
-//     out.set_wheel_right(mouse_events.wheel_right);
+    out.set_wheel_up(mouse_events.wheel_up);
+    out.set_wheel_down(mouse_events.wheel_down);
+    out.set_wheel_left(mouse_events.wheel_left);
+    out.set_wheel_right(mouse_events.wheel_right);
 
-//     out
-// }
+    out
+}
 
 fn adjust_input_state(analog_stick: &AnalogStick, input_state: &mut InputState) {
     let value;
