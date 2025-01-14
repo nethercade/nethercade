@@ -1,3 +1,6 @@
+// TODO: Lights are in world space, but calculations are done in view space
+// need make this work
+
 // Consts
 const MAX_LIGHTS = 4;
 const PI = radians(180.0);
@@ -5,16 +8,18 @@ const INV_PI = 1.0 / PI;
 const MAX_SHININESS = 2048.0;
 const LIGHT_FALLOFF = 2.0;
 
-// Uniforms
+// Instance Bindings
 @group(0) @binding(0)
-var<uniform> camera: Camera;
+var<storage> model_matrices: array<mat4x4<f32>>;
 
-struct Camera {
-    view: mat4x4<f32>,
-    proj: mat4x4<f32>,
-    ortho: mat4x4<f32>,
-    pos: vec4<f32>,
-}
+@group(0) @binding(1)
+var<storage> view_matrices: array<mat4x4<f32>>;
+
+@group(0) @binding(2)
+var<storage> projection_matrices: array<mat4x4<f32>>;
+
+@group(0) @binding(3)
+var<storage> camera_positions: array<vec3<f32>>;
 
 // Texture Bindings
 @group(1) @binding(0)
@@ -41,10 +46,10 @@ struct Light {
 }
 
 struct InstanceInput {
-    @location(6) model_matrix_0: vec4<f32>,
-    @location(7) model_matrix_1: vec4<f32>,
-    @location(8) model_matrix_2: vec4<f32>,
-    @location(9) model_matrix_3: vec4<f32>,
+    @location(6) model_index: u32,
+    @location(7) view_pos_index: u32,
+    @location(8) projection_index: u32,
+    @location(9) light_count: u32, // TODO: Use this!
 }
 
 // Vertex Inputs
@@ -84,14 +89,12 @@ fn vs_color(
     instance: InstanceInput,
 ) -> VertexColorOut {
     var out: VertexColorOut;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
+    let model_matrix = model_matrices[instance.model_index];
+    let view_matrix = view_matrices[instance.view_pos_index];
+    let projection_matrix = projection_matrices[instance.projection_index];
+
     out.color = model.color;
-    out.clip_position = camera.proj * camera.view * model_matrix * vec4<f32>(model.position, 1.0);
+    out.clip_position = projection_matrix * view_matrix * model_matrix * vec4<f32>(model.position, 1.0);
     return out;
 }
 
@@ -117,14 +120,12 @@ fn vs_uv(
     instance: InstanceInput,
 ) -> VertexUvOut {
     var out: VertexUvOut;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
+    let model_matrix = model_matrices[instance.model_index];
+    let view_matrix = view_matrices[instance.view_pos_index];
+    let projection_matrix = projection_matrices[instance.projection_index];
+
     out.uvs = model.uvs;
-    out.clip_position = camera.proj * camera.view * model_matrix * vec4<f32>(model.position, 1.0);
+    out.clip_position = projection_matrix * view_matrix * model_matrix * vec4<f32>(model.position, 1.0);
     return out;
 }
 
@@ -152,15 +153,13 @@ fn vs_color_uv(
     instance: InstanceInput,
 ) -> VertexColorUvOut {
     var out: VertexColorUvOut;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
+    let model_matrix = model_matrices[instance.model_index];
+    let view_matrix = view_matrices[instance.view_pos_index];
+    let projection_matrix = projection_matrices[instance.projection_index];
+
     out.color = model.color;
     out.uvs = model.uvs;
-    out.clip_position = camera.proj * camera.view * model_matrix * vec4<f32>(model.position, 1.0);
+    out.clip_position = projection_matrix * view_matrix * model_matrix * vec4<f32>(model.position, 1.0);
     return out;
 }
 
@@ -193,24 +192,22 @@ fn vs_color_lit(
     instance: InstanceInput,
 ) -> VertexColorLitOut {
     var out: VertexColorLitOut;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
+    let model_matrix = model_matrices[instance.model_index];
+    let view_matrix = view_matrices[instance.view_pos_index];
+    let projection_matrix = projection_matrices[instance.projection_index];
+    let camera_pos = camera_positions[instance.view_pos_index];
 
-    let view_position = camera.view * model_matrix * vec4<f32>(model.position, 1.0);
+    let view_position = view_matrix * model_matrix * vec4<f32>(model.position, 1.0);
 
-    out.clip_position = camera.proj * view_position;
+    out.clip_position = projection_matrix * view_position;
     out.color = model.color;
-    out.normals = normalize((camera.view * model_matrix * vec4<f32>(model.normals, 0.0)).xyz);
+    out.normals = normalize((view_matrix * model_matrix * vec4<f32>(model.normals, 0.0)).xyz);
     out.view_pos = view_position.xyz;
     out.lighting = model.lighting;
 
     let world_position = model_matrix * vec4<f32>(model.position, 1.0);
-    let world_normal = normalize(model_matrix * vec4<f32>(model.normals, 0.0));
-    let incoming = normalize(camera.pos - world_position);
+    let world_normal = normalize(model_matrix * vec4<f32>(model.normals, 0.0)).xyz;
+    let incoming = normalize(camera_pos - world_position.xyz);
     out.world_reflection = reflect(incoming, world_normal).xyz;
 
     return out;
@@ -253,24 +250,22 @@ fn vs_uv_lit(
     instance: InstanceInput,
 ) -> VertexUvLitOut {
     var out: VertexUvLitOut;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
+    let model_matrix = model_matrices[instance.model_index];
+    let view_matrix = view_matrices[instance.view_pos_index];
+    let projection_matrix = projection_matrices[instance.projection_index];
+    let camera_pos = camera_positions[instance.view_pos_index];
 
-    let view_position = camera.view * model_matrix * vec4<f32>(model.position, 1.0);
+    let view_position = view_matrix * model_matrix * vec4<f32>(model.position, 1.0);
 
     out.uvs = model.uvs;
-    out.clip_position = camera.proj * view_position;
+    out.clip_position = projection_matrix * view_position;
     out.view_pos = view_position.xyz;
-    out.normals = normalize((camera.view * model_matrix * vec4<f32>(model.normals, 0.0)).xyz);
+    out.normals = normalize((view_matrix * model_matrix * vec4<f32>(model.normals, 0.0)).xyz);
     out.lighting = model.lighting;
 
     let world_position = model_matrix * vec4<f32>(model.position, 1.0);
-    let world_normal = normalize(model_matrix * vec4<f32>(model.normals, 0.0));
-    let incoming = normalize(camera.pos - world_position);
+    let world_normal = normalize(model_matrix * vec4<f32>(model.normals, 0.0)).xyz;
+    let incoming = normalize(camera_pos - world_position.xyz);
     out.world_reflection = reflect(incoming, world_normal).xyz;
 
     return out;
@@ -315,25 +310,23 @@ fn vs_color_uv_lit(
     instance: InstanceInput,
 ) -> VertexColorUvLitOut {
     var out: VertexColorUvLitOut;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
+    let model_matrix = model_matrices[instance.model_index];
+    let view_matrix = view_matrices[instance.view_pos_index];
+    let projection_matrix = projection_matrices[instance.projection_index];
+    let camera_pos = camera_positions[instance.view_pos_index];
 
-    let view_position = camera.view * model_matrix * vec4<f32>(model.position, 1.0);
+    let view_position = view_matrix * model_matrix * vec4<f32>(model.position, 1.0);
 
     out.color = model.color;
     out.uvs = model.uvs;
-    out.clip_position = camera.proj * view_position;
+    out.clip_position = projection_matrix * view_position;
     out.view_pos = view_position.xyz;
-    out.normals = normalize((camera.view * model_matrix * vec4<f32>(model.normals, 0.0)).xyz);
+    out.normals = normalize((view_matrix * model_matrix * vec4<f32>(model.normals, 0.0)).xyz);
     out.lighting = model.lighting;
 
     let world_position = model_matrix * vec4<f32>(model.position, 1.0);
-    let world_normal = normalize(model_matrix * vec4<f32>(model.normals, 0.0));
-    let incoming = normalize(camera.pos - world_position);
+    let world_normal = normalize(model_matrix * vec4<f32>(model.normals, 0.0)).xyz;
+    let incoming = normalize(camera_pos - world_position.xyz);
     out.world_reflection = reflect(incoming, world_normal).xyz;
 
     return out;
@@ -573,21 +566,22 @@ fn calculate_lighting(
     return output_color;
 }
 
-@vertex
-fn vs_quad_2d(
-    model: VertexUvIn,
-    instance: InstanceInput,
-) -> VertexUvOut {
-    var out: VertexUvOut;
-    let model_matrix = mat4x4<f32>(
-        instance.model_matrix_0,
-        instance.model_matrix_1,
-        instance.model_matrix_2,
-        instance.model_matrix_3,
-    );
+// TODO: Fix this
+// @vertex
+// fn vs_quad_2d(
+//     model: VertexUvIn,
+//     instance: InstanceInput,
+// ) -> VertexUvOut {
+//     var out: VertexUvOut;
+//     let model_matrix = mat4x4<f32>(
+//         instance.model_matrix_0,
+//         instance.model_matrix_1,
+//         instance.model_matrix_2,
+//         instance.model_matrix_3,
+//     );
 
-    out.uvs = model.uvs;
-    out.clip_position = camera.ortho * model_matrix * vec4<f32>(model.position, 1.0);
+//     out.uvs = model.uvs;
+//     out.clip_position = camera.ortho * model_matrix * vec4<f32>(model.position, 1.0);
 
-    return out;
-}
+//     return out;
+// }

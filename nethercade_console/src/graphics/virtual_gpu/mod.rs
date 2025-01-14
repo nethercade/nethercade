@@ -1,4 +1,3 @@
-mod camera;
 mod environment_map;
 pub mod frame_buffer;
 mod immediate_renderer;
@@ -20,7 +19,7 @@ use pipeline::Pipeline;
 use textures::DepthTexture;
 pub use virtual_gpu_callback::*;
 
-pub const CAMERA_BIND_GROUP_INDEX: u32 = 0;
+pub const IMMEDIATE_BIND_GROUP_INDEX: u32 = 0;
 pub const TEXTURE_BIND_GROUP_INDEX: u32 = 1;
 pub const LIGHT_BIND_GROUP_INDEX: u32 = 2;
 
@@ -34,8 +33,7 @@ pub struct VirtualGpu {
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
 
-    pub render_pipelines: [wgpu::RenderPipeline; 7],
-    pub camera: camera::Camera,
+    pub render_pipelines: [wgpu::RenderPipeline; 6],
     pub lights: lights::Lights,
     pub environment_map: environment_map::EnvironmentMap,
     pub instance_buffer: wgpu::Buffer,
@@ -58,16 +56,17 @@ impl VirtualGpu {
             label: Some("Master Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
-        let camera = camera::Camera::new(device, resolution);
+
         let mut textures = textures::Textures::new(device, resolution);
         let lights = lights::Lights::new(device);
         let environment_map = environment_map::EnvironmentMap::new(device, queue);
+        let immediate_renderer = immediate_renderer::ImmediateRenderer::new(device);
 
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
-                    &camera.bind_group_layout,
+                    &immediate_renderer.bind_group_layout,
                     &textures.bind_group_layout,
                     &lights.bind_group_layout,
                     &environment_map.bind_group_layout,
@@ -100,8 +99,7 @@ impl VirtualGpu {
             textures,
             quad_renderer: quad_renderer::QuadRenderer::new(device, queue),
             preloaded_renderer: preloaded_renderer::PreloadedRenderer::new(),
-            immediate_renderer: immediate_renderer::ImmediateRenderer::new(device),
-            camera,
+            immediate_renderer,
             lights,
             instance_buffer,
             environment_map,
@@ -147,13 +145,11 @@ impl VirtualGpu {
                 timestamp_writes: None,
             });
 
-            self.queue.write_buffer(
-                &self.camera.buffer,
-                0,
-                bytemuck::cast_slice(&self.camera.get_camera_uniforms()),
+            render_pass.set_bind_group(
+                IMMEDIATE_BIND_GROUP_INDEX,
+                &self.immediate_renderer.bind_group,
+                &[],
             );
-
-            render_pass.set_bind_group(CAMERA_BIND_GROUP_INDEX, &self.camera.bind_group, &[]);
             render_pass.set_bind_group(LIGHT_BIND_GROUP_INDEX, &self.lights.bind_group, &[]);
             render_pass.set_bind_group(
                 ENVIRONMENT_MAP_BIND_GROUP,
@@ -207,16 +203,17 @@ fn generate_render_pipelines(
     shader: &wgpu::ShaderModule,
     layout: &wgpu::PipelineLayout,
     format: wgpu::TextureFormat,
-) -> [wgpu::RenderPipeline; 7] {
+) -> [wgpu::RenderPipeline; 6] {
     use pipeline::Pipeline;
-    const PIPELINES: [Pipeline; 7] = [
+    const PIPELINES: [Pipeline; 6] = [
         Pipeline::Color,
         Pipeline::Uv,
         Pipeline::ColorUv,
         Pipeline::ColorLit,
         Pipeline::UvLit,
         Pipeline::ColorUvLit,
-        Pipeline::Quad2d,
+        // TODO: Put this back later
+        // Pipeline::Quad2d,
     ];
 
     std::array::from_fn(|i| {

@@ -45,7 +45,9 @@ impl GameInstance {
         {
             let ctx = &mut self.store.data_mut().draw_3d;
             ctx.vrp.reset();
-            ctx.push_matrix(Mat4::IDENTITY);
+            // ctx.push_model_matrix(Mat4::IDENTITY);
+            // TODO: push View matrix
+            // TODO: Push Proj Matrix
             ctx.set_texture(0);
             ctx.state = DrawContextState::Draw;
         }

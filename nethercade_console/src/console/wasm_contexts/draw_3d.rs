@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
-use bytemuck::{cast_slice, from_bytes};
-use glam::{Mat4, Vec4Swizzles};
+use bytemuck::{bytes_of, cast_slice, from_bytes};
+use glam::{Mat4, Vec3, Vec4};
 use wasmtime::{Caller, Linker};
 
 use crate::graphics::{
@@ -44,7 +44,15 @@ impl Draw3dContext {
             .func_wrap("env", "draw_tri_list_indexed", draw_tri_list_indexed)
             .unwrap();
         linker.func_wrap("env", "push_light", push_light).unwrap();
-        linker.func_wrap("env", "push_matrix", push_matrix).unwrap();
+        linker
+            .func_wrap("env", "push_model_matrix", push_model_matrix)
+            .unwrap();
+        linker
+            .func_wrap("env", "push_proj_matrix", push_proj_matrix)
+            .unwrap();
+        linker
+            .func_wrap("env", "push_view_matrix_pos", push_view_matrix_pos)
+            .unwrap();
         linker
             .func_wrap("env", "draw_static_mesh", draw_static_mesh)
             .unwrap();
@@ -77,7 +85,7 @@ impl Draw3dContext {
         }
 
         self.vgpu.borrow().queue.write_buffer(
-            &self.vgpu.borrow().immediate_renderer.buffer,
+            &self.vgpu.borrow().immediate_renderer.vertex_buffer,
             self.vrp.immediate_buffer_last_index,
             bytemuck::cast_slice(data),
         );
@@ -94,14 +102,6 @@ impl Draw3dContext {
 
     pub fn push_light(&mut self, light: &Light) {
         let offset = self.vrp.light_count * size_of::<Light>() as u64;
-        let mut light = *light;
-        let view_position =
-            self.vgpu.borrow().camera.get_view() * light.position_range.xyz().extend(1.0);
-        let view_direction =
-            self.vgpu.borrow().camera.get_view() * light.direction_min_angle.xyz().extend(0.0);
-
-        light.position_range = view_position.xyz().extend(light.position_range.w);
-        light.direction_min_angle = view_direction.xyz().extend(light.direction_min_angle.w);
 
         self.vgpu.borrow().queue.write_buffer(
             &self.vgpu.borrow().lights.buffer,
@@ -112,15 +112,50 @@ impl Draw3dContext {
         self.vrp.light_count += 1;
     }
 
-    pub fn push_matrix(&mut self, matrix: Mat4) {
-        let offset = self.vrp.instance_count * size_of::<Mat4>() as u64;
+    pub fn push_model_matrix(&mut self, model: Mat4) {
+        let offset_model = self.vrp.model_matrix_count * size_of::<Mat4>() as u64;
         self.vgpu.borrow().queue.write_buffer(
-            &self.vgpu.borrow().instance_buffer,
-            offset,
-            bytemuck::bytes_of(&matrix),
+            &self.vgpu.borrow().immediate_renderer.model_buffer,
+            offset_model,
+            bytes_of(&model),
         );
-        self.vrp.commands.push(Command::SetModelMatrix);
-        self.vrp.instance_count += 1;
+        self.vrp.push_model_matrix(
+            &self.vgpu.borrow().instance_buffer,
+            &self.vgpu.borrow().queue,
+        );
+    }
+
+    pub fn push_view_matrix_pos(&mut self, view: Mat4, pos: Vec3) {
+        let offset_view = self.vrp.view_pos_count * size_of::<Mat4>() as u64;
+        self.vgpu.borrow().queue.write_buffer(
+            &self.vgpu.borrow().immediate_renderer.view_buffer,
+            offset_view,
+            bytes_of(&view),
+        );
+        // Wrong type to correctly pad here
+        let offset_pos = self.vrp.view_pos_count * size_of::<Vec4>() as u64;
+        self.vgpu.borrow().queue.write_buffer(
+            &self.vgpu.borrow().immediate_renderer.camera_pos_buffer,
+            offset_pos,
+            bytes_of(&pos),
+        );
+        self.vrp.push_view_pos(
+            &self.vgpu.borrow().instance_buffer,
+            &self.vgpu.borrow().queue,
+        );
+    }
+
+    pub fn push_projection_matrix(&mut self, proj: Mat4) {
+        let offset_proj = self.vrp.projection_matrix_count * size_of::<Mat4>() as u64;
+        self.vgpu.borrow().queue.write_buffer(
+            &self.vgpu.borrow().immediate_renderer.proj_buffer,
+            offset_proj,
+            bytes_of(&proj),
+        );
+        self.vrp.push_proj_matrix(
+            &self.vgpu.borrow().instance_buffer,
+            &self.vgpu.borrow().queue,
+        );
     }
 
     pub fn draw_static_mesh(&mut self, index: usize) {
@@ -216,9 +251,9 @@ fn push_light(mut caller: Caller<WasmContexts>, light_ptr: i32) {
     store.draw_3d.push_light(light);
 }
 
-fn push_matrix(mut caller: Caller<WasmContexts>, mat_ptr: i32) {
+fn push_model_matrix(mut caller: Caller<WasmContexts>, mat_ptr: i32) {
     if caller.data().draw_3d.state != DrawContextState::Draw {
-        println!("Called push_matrix outside of draw.");
+        println!("Called push_model_matrix outside of draw.");
         return;
     }
 
@@ -226,7 +261,35 @@ fn push_matrix(mut caller: Caller<WasmContexts>, mat_ptr: i32) {
     let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
     let (data, store) = mem.data_and_store_mut(&mut caller);
     let mat: &Mat4 = from_bytes(&data[mat_ptr..mat_ptr + size_of::<Mat4>()]);
-    store.draw_3d.push_matrix(*mat);
+    store.draw_3d.push_model_matrix(*mat);
+}
+
+fn push_view_matrix_pos(mut caller: Caller<WasmContexts>, view_ptr: i32, pos_ptr: i32) {
+    if caller.data().draw_3d.state != DrawContextState::Draw {
+        println!("Called push_model_matrix outside of draw.");
+        return;
+    }
+
+    let view_ptr = view_ptr as usize;
+    let pos_ptr = pos_ptr as usize;
+    let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+    let (data, store) = mem.data_and_store_mut(&mut caller);
+    let mat: &Mat4 = from_bytes(&data[view_ptr..view_ptr + size_of::<Mat4>()]);
+    let pos: &Vec3 = from_bytes(&data[pos_ptr..pos_ptr + size_of::<Vec3>()]);
+    store.draw_3d.push_view_matrix_pos(*mat, *pos);
+}
+
+fn push_proj_matrix(mut caller: Caller<WasmContexts>, proj_ptr: i32) {
+    if caller.data().draw_3d.state != DrawContextState::Draw {
+        println!("Called push_proj_matrix outside of draw.");
+        return;
+    }
+
+    let proj_ptr = proj_ptr as usize;
+    let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
+    let (data, store) = mem.data_and_store_mut(&mut caller);
+    let mat: &Mat4 = from_bytes(&data[proj_ptr..proj_ptr + size_of::<Mat4>()]);
+    store.draw_3d.push_projection_matrix(*mat);
 }
 
 fn draw_static_mesh(mut caller: Caller<WasmContexts>, id: i32) {
