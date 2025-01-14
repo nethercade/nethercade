@@ -1,7 +1,6 @@
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use eframe::wgpu;
-use glam::Mat4;
 use nethercade_core::{Resolution, Rom};
 use wasmtime::{Config, Engine, Instance, Linker, Module, Store};
 

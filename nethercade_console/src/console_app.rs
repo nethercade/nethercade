@@ -4,6 +4,7 @@ use eframe::{
     egui::{self, Sense},
     egui_wgpu,
 };
+use egui::Vec2;
 use gilrs::Gilrs;
 use nethercade_core::Rom;
 
@@ -109,6 +110,12 @@ impl eframe::App for ConsoleApp {
                 if ui.button("Load Rom").clicked() {
                     if let Some(rom) = try_load_rom() {
                         // TODO: Add more players
+                        let dimensions = rom.resolution.dimensions();
+                        let resolution = Vec2::new(dimensions.0 as f32, dimensions.1 as f32);
+                        let spacing = &ctx.style().spacing;
+                        let new_size =
+                            resolution + spacing.window_margin.sum() + spacing.item_spacing;
+                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(new_size));
                         self.console.load_rom(rom, self.console.vgpu.clone(), 1);
                     }
                 }
