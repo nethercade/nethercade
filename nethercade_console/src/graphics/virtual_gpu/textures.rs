@@ -7,6 +7,7 @@ use std::cell::RefCell;
 pub struct Textures {
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub textures: Vec<Texture>,
+    sampler: wgpu::Sampler,
     pub depth_texture: RefCell<DepthTexture>,
 }
 
@@ -38,10 +39,13 @@ impl Textures {
     pub fn new(device: &wgpu::Device, resolution: Resolution) -> Self {
         let bind_group_layout = device.create_bind_group_layout(bind_group_layout_desc());
 
+        let sampler = device.create_sampler(&sampler_descriptor());
+
         Self {
             bind_group_layout,
             textures: Vec::new(),
             depth_texture: RefCell::new(DepthTexture::create_depth_texture(device, resolution)),
+            sampler,
         }
     }
 
@@ -82,7 +86,6 @@ impl Textures {
             view_formats: &[],
         });
 
-        let sampler = device.create_sampler(&sampler_descriptor());
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -94,7 +97,7 @@ impl Textures {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
+                    resource: wgpu::BindingResource::Sampler(&self.sampler),
                 },
             ],
             label: Some(path),
