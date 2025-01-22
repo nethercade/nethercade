@@ -1,7 +1,6 @@
-mod environment_map;
 pub mod frame_buffer;
 mod immediate_renderer;
-pub mod lights;
+
 mod mesh;
 pub mod pipeline;
 mod preloaded_renderer;
@@ -13,15 +12,13 @@ pub mod virtual_render_pass;
 
 use std::sync::Arc;
 
-use environment_map::ENVIRONMENT_MAP_BIND_GROUP;
 use nethercade_core::Resolution;
 use pipeline::Pipeline;
 use textures::DepthTexture;
 pub use virtual_gpu_callback::*;
 
-pub const IMMEDIATE_BIND_GROUP_INDEX: u32 = 0;
+pub const PER_FRAME_BIND_GROUP_INDEX: u32 = 0;
 pub const TEXTURE_BIND_GROUP_INDEX: u32 = 1;
-pub const LIGHT_BIND_GROUP_INDEX: u32 = 2;
 
 pub const VERTEX_BUFFER_INDEX: u32 = 0;
 pub const INSTANCE_BUFFER_INDEX: u32 = 1;
@@ -33,9 +30,7 @@ pub struct VirtualGpu {
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
 
-    pub render_pipelines: [wgpu::RenderPipeline; 6],
-    pub lights: lights::Lights,
-    pub environment_map: environment_map::EnvironmentMap,
+    pub render_pipelines: [wgpu::RenderPipeline; 8],
     pub instance_buffer: wgpu::Buffer,
     pub frame_buffer: Arc<frame_buffer::FrameBuffer>,
 
@@ -58,8 +53,6 @@ impl VirtualGpu {
         });
 
         let mut textures = textures::Textures::new(device, resolution);
-        let lights = lights::Lights::new(device);
-        let environment_map = environment_map::EnvironmentMap::new(device, queue);
         let immediate_renderer = immediate_renderer::ImmediateRenderer::new(device);
 
         let render_pipeline_layout =
@@ -68,8 +61,6 @@ impl VirtualGpu {
                 bind_group_layouts: &[
                     &immediate_renderer.bind_group_layout,
                     &textures.bind_group_layout,
-                    &lights.bind_group_layout,
-                    &environment_map.bind_group_layout,
                 ],
                 push_constant_ranges: &[],
             });
@@ -100,9 +91,7 @@ impl VirtualGpu {
             quad_renderer: quad_renderer::QuadRenderer::new(device, queue),
             preloaded_renderer: preloaded_renderer::PreloadedRenderer::new(),
             immediate_renderer,
-            lights,
             instance_buffer,
-            environment_map,
             frame_buffer: Arc::new(frame_buffer::FrameBuffer::new(device, resolution, format)),
         }
     }
@@ -146,20 +135,9 @@ impl VirtualGpu {
             });
 
             render_pass.set_bind_group(
-                IMMEDIATE_BIND_GROUP_INDEX,
+                PER_FRAME_BIND_GROUP_INDEX,
                 &self.immediate_renderer.bind_group,
                 &[],
-            );
-            render_pass.set_bind_group(LIGHT_BIND_GROUP_INDEX, &self.lights.bind_group, &[]);
-            render_pass.set_bind_group(
-                ENVIRONMENT_MAP_BIND_GROUP,
-                &self.environment_map.bind_group,
-                &[],
-            );
-            self.queue.write_buffer(
-                &self.environment_map.uniforms_buffer,
-                0,
-                bytemuck::cast_slice(&self.environment_map.uniforms.get_uniforms()),
             );
             render_pass.set_vertex_buffer(INSTANCE_BUFFER_INDEX, self.instance_buffer.slice(..));
 
@@ -203,17 +181,17 @@ fn generate_render_pipelines(
     shader: &wgpu::ShaderModule,
     layout: &wgpu::PipelineLayout,
     format: wgpu::TextureFormat,
-) -> [wgpu::RenderPipeline; 6] {
+) -> [wgpu::RenderPipeline; 8] {
     use pipeline::Pipeline;
-    const PIPELINES: [Pipeline; 6] = [
+    const PIPELINES: [Pipeline; 8] = [
         Pipeline::Color,
         Pipeline::Uv,
         Pipeline::ColorUv,
-        Pipeline::ColorLit,
-        Pipeline::UvLit,
-        Pipeline::ColorUvLit,
-        // TODO: Put this back later
-        // Pipeline::Quad2d,
+        Pipeline::Quad2d,
+        Pipeline::Matcap,
+        Pipeline::MatcapColor,
+        Pipeline::MatcapUv,
+        Pipeline::MatcapColorUv,
     ];
 
     std::array::from_fn(|i| {

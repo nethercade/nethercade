@@ -1,6 +1,6 @@
 use eframe::wgpu;
 
-use super::mesh;
+use super::{mesh, textures};
 
 // TODO: Could do something for immediate Textures
 
@@ -14,6 +14,9 @@ pub struct ImmediateRenderer {
     pub camera_pos_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     pub bind_group_layout: wgpu::BindGroupLayout,
+
+    pub texture_sampler: wgpu::Sampler,
+    pub matcap_sampler: wgpu::Sampler,
 }
 
 impl ImmediateRenderer {
@@ -95,9 +98,26 @@ impl ImmediateRenderer {
                     ty: buffer_type,
                     count: None,
                 },
+                // Texture Sampler
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                    count: None,
+                },
+                // Matcap Sampler
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
             ],
             label: Some("instance data bind group layout"),
         });
+
+        let texture_sampler = device.create_sampler(&textures::texture_sampler_descriptor());
+        let matcap_sampler = device.create_sampler(&textures::matcap_sampler_descriptor());
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -118,6 +138,14 @@ impl ImmediateRenderer {
                     binding: 3,
                     resource: position_buffer.as_entire_binding(),
                 },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: position_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: position_buffer.as_entire_binding(),
+                },
             ],
             label: Some("instance data bind group"),
         });
@@ -130,6 +158,8 @@ impl ImmediateRenderer {
             camera_pos_buffer: position_buffer,
             bind_group,
             bind_group_layout,
+            texture_sampler,
+            matcap_sampler,
         }
     }
 }

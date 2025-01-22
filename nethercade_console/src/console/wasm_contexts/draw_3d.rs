@@ -5,7 +5,6 @@ use glam::{Mat4, Vec3, Vec4};
 use wasmtime::{Caller, Linker};
 
 use crate::graphics::{
-    lights::Light,
     pipeline::Pipeline,
     virtual_render_pass::{Command, VirtualRenderPass},
     VirtualGpu,
@@ -43,7 +42,6 @@ impl Draw3dContext {
         linker
             .func_wrap("env", "draw_tri_list_indexed", draw_tri_list_indexed)
             .unwrap();
-        linker.func_wrap("env", "push_light", push_light).unwrap();
         linker
             .func_wrap("env", "push_model_matrix", push_model_matrix)
             .unwrap();
@@ -98,18 +96,6 @@ impl Draw3dContext {
     // TOOD: Write this
     pub fn draw_tri_list_indexed(&mut self, _data: &[f32], _indices: &[i16], _pipeline: Pipeline) {
         todo!()
-    }
-
-    pub fn push_light(&mut self, light: &Light) {
-        let offset = self.vrp.light_count * size_of::<Light>() as u64;
-
-        self.vgpu.borrow().queue.write_buffer(
-            &self.vgpu.borrow().lights.buffer,
-            offset,
-            cast_slice(&light.get_light_uniforms()),
-        );
-
-        self.vrp.light_count += 1;
     }
 
     pub fn push_model_matrix(&mut self, model: Mat4) {
@@ -236,19 +222,6 @@ fn draw_tri_list_indexed(
         &index[..index_len as usize],
         pipeline,
     );
-}
-
-fn push_light(mut caller: Caller<WasmContexts>, light_ptr: i32) {
-    if caller.data().draw_3d.state != DrawContextState::Draw {
-        println!("Called push_light outside of draw.");
-        return;
-    }
-
-    let light_ptr = light_ptr as usize;
-    let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
-    let (data, store) = mem.data_and_store_mut(&mut caller);
-    let light: &Light = from_bytes(&data[light_ptr..light_ptr + size_of::<Light>()]);
-    store.draw_3d.push_light(light);
 }
 
 fn push_model_matrix(mut caller: Caller<WasmContexts>, mat_ptr: i32) {

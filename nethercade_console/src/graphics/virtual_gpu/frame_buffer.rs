@@ -31,7 +31,7 @@ impl FrameBuffer {
             view_formats: &[],
         });
 
-        let sampler = device.create_sampler(&textures::sampler_descriptor());
+        let sampler = device.create_sampler(&textures::texture_sampler_descriptor());
         let view = texture.create_view(&TextureViewDescriptor::default());
         let texture_bind_group_layout =
             device.create_bind_group_layout(textures::bind_group_layout_desc());

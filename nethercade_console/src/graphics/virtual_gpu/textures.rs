@@ -7,7 +7,6 @@ use std::cell::RefCell;
 pub struct Textures {
     pub bind_group_layout: wgpu::BindGroupLayout,
     pub textures: Vec<Texture>,
-    sampler: wgpu::Sampler,
     pub depth_texture: RefCell<DepthTexture>,
 }
 
@@ -20,14 +19,38 @@ pub const fn bind_group_layout_desc() -> &'static wgpu::BindGroupLayoutDescripto
                 ty: wgpu::BindingType::Texture {
                     multisampled: false,
                     view_dimension: wgpu::TextureViewDimension::D2,
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
                 },
                 count: None,
             },
             wgpu::BindGroupLayoutEntry {
                 binding: 1,
                 visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    multisampled: false,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                },
                 count: None,
             },
         ],
@@ -39,13 +62,10 @@ impl Textures {
     pub fn new(device: &wgpu::Device, resolution: Resolution) -> Self {
         let bind_group_layout = device.create_bind_group_layout(bind_group_layout_desc());
 
-        let sampler = device.create_sampler(&sampler_descriptor());
-
         Self {
             bind_group_layout,
             textures: Vec::new(),
             depth_texture: RefCell::new(DepthTexture::create_depth_texture(device, resolution)),
-            sampler,
         }
     }
 
@@ -88,21 +108,6 @@ impl Textures {
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-            ],
-            label: Some(path),
-        });
-
         queue.write_texture(
             // Tells wgpu where to copy the pixel data
             wgpu::ImageCopyTexture {
@@ -122,7 +127,7 @@ impl Textures {
             size,
         );
 
-        let texture = Texture { bind_group };
+        let texture = Texture { view };
 
         self.textures.push(texture);
         self.textures.len() - 1
@@ -130,16 +135,28 @@ impl Textures {
 }
 
 pub struct Texture {
-    pub bind_group: wgpu::BindGroup,
+    pub view: wgpu::TextureView,
 }
 
-pub fn sampler_descriptor() -> wgpu::SamplerDescriptor<'static> {
+pub fn texture_sampler_descriptor() -> wgpu::SamplerDescriptor<'static> {
     wgpu::SamplerDescriptor {
         address_mode_u: wgpu::AddressMode::Repeat,
         address_mode_v: wgpu::AddressMode::Repeat,
         address_mode_w: wgpu::AddressMode::Repeat,
         mag_filter: wgpu::FilterMode::Nearest,
         min_filter: wgpu::FilterMode::Nearest,
+        mipmap_filter: wgpu::FilterMode::Nearest,
+        ..Default::default()
+    }
+}
+
+pub fn matcap_sampler_descriptor() -> wgpu::SamplerDescriptor<'static> {
+    wgpu::SamplerDescriptor {
+        address_mode_u: wgpu::AddressMode::Repeat,
+        address_mode_v: wgpu::AddressMode::Repeat,
+        address_mode_w: wgpu::AddressMode::Repeat,
+        mag_filter: wgpu::FilterMode::Linear,
+        min_filter: wgpu::FilterMode::Linear,
         mipmap_filter: wgpu::FilterMode::Nearest,
         ..Default::default()
     }
