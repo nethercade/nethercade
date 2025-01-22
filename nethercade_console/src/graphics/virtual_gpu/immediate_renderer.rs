@@ -140,11 +140,11 @@ impl ImmediateRenderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 4,
-                    resource: position_buffer.as_entire_binding(),
+                    resource: wgpu::BindingResource::Sampler(&texture_sampler),
                 },
                 wgpu::BindGroupEntry {
                     binding: 5,
-                    resource: position_buffer.as_entire_binding(),
+                    resource: wgpu::BindingResource::Sampler(&matcap_sampler),
                 },
             ],
             label: Some("instance data bind group"),

@@ -158,8 +158,16 @@ impl Draw3dContext {
         self.vrp.commands.push(Command::DrawSprite(index));
     }
 
-    pub fn set_texture(&mut self, tex_id: usize) {
-        self.vrp.commands.push(Command::SetTexture(tex_id));
+    pub fn set_texture(&mut self, tex_id: usize, layer: usize, blend_mode: usize) {
+        self.vrp
+            .commands
+            .push(Command::SetTexture(tex_id, layer, blend_mode));
+    }
+
+    pub fn set_matcap(&mut self, tex_id: usize, layer: usize, blend_mode: usize) {
+        self.vrp
+            .commands
+            .push(Command::SetMatcap(tex_id, layer, blend_mode));
     }
 
     fn load_texture(&mut self, data: &[u8], has_alpha: bool) -> i32 {
@@ -292,12 +300,26 @@ fn draw_sprite(mut caller: Caller<WasmContexts>, sprite_id: i32) {
     caller.data_mut().draw_3d.draw_sprite(sprite_id as usize);
 }
 
-fn set_texture(mut caller: Caller<WasmContexts>, tex_id: i32) {
+fn set_texture(mut caller: Caller<WasmContexts>, tex_id: i32, layer: i32, blend_mode: i32) {
     if caller.data().draw_3d.state != DrawContextState::Draw {
         println!("Called set_texture outside of draw.");
         return;
     }
-    caller.data_mut().draw_3d.set_texture(tex_id as usize);
+    caller
+        .data_mut()
+        .draw_3d
+        .set_texture(tex_id as usize, layer as usize, blend_mode as usize);
+}
+
+fn set_matcap(mut caller: Caller<WasmContexts>, tex_id: i32, layer: i32, blend_mode: i32) {
+    if caller.data().draw_3d.state != DrawContextState::Draw {
+        println!("Called set_matcap outside of draw.");
+        return;
+    }
+    caller
+        .data_mut()
+        .draw_3d
+        .set_matcap(tex_id as usize, layer as usize, blend_mode as usize);
 }
 
 fn load_texture(

@@ -47,7 +47,7 @@ impl GameInstance {
             // ctx.push_model_matrix(Mat4::IDENTITY);
             // TODO: push View matrix
             // TODO: Push Proj Matrix
-            ctx.set_texture(0);
+            // ctx.set_texture(0);
             ctx.state = DrawContextState::Draw;
         }
 
