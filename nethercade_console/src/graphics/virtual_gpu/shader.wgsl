@@ -43,9 +43,9 @@ var texture4: texture_2d<f32>;
 // END TEXTURE BINDINGS
 
 struct InstanceInput {
-    @location(6) model_index: u32,
-    @location(7) view_pos_index: u32,
-    @location(8) projection_index: u32,
+    @location(4) model_index: u32,
+    @location(5) view_pos_index: u32,
+    @location(6) projection_index: u32,
 }
 
 // Vertex Color
@@ -107,8 +107,8 @@ fn vs_uv(
 
 @fragment
 fn fs_uv(in: VertexUvOut) -> @location(0) vec4<f32> {
-    // TODO: Use Blended Textures
-    return textureSample(texture1, texture_sampler, in.uvs);
+    let color = get_blended_textures(in.uvs);
+    return vec4(color, 1.0);
 }
 
 // Vertex Color + UVs
@@ -142,9 +142,8 @@ fn vs_color_uv(
 
 @fragment
 fn fs_color_uv(in: VertexColorUvOut) -> @location(0) vec4<f32> {
-    // TODO: Use Blended Textures
-    let texel = textureSample(texture1, texture_sampler, in.uvs).rgb;
-    return vec4<f32>(in.color * texel, 1.0);
+    let color = get_color_blended_textures(in.color, in.uvs);
+    return vec4<f32>(color, 1.0);
 }
 
 @vertex

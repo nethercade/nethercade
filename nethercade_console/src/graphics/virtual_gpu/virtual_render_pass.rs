@@ -19,6 +19,7 @@ pub enum Command {
     Draw(u32),                       //Vertex Count
     SetTexture(usize, usize, usize), // TextureId, Layer Index, Blend Mode
     SetMatcap(usize, usize, usize),  // Matcap Id, Layer Index, Blend Mode
+    ClearTextures,
     UpdateInstance,
     DrawStaticMesh(usize),        // Static Mesh ID
     DrawStaticMeshIndexed(usize), // Static Mesh Indexed Id
@@ -33,6 +34,7 @@ struct TextureStates {
 }
 
 impl TextureStates {
+    // TODO: Use this!
     fn to_push_constants(&self) -> [u8; 8] {
         let mut out = [0; 8];
 
@@ -167,10 +169,21 @@ impl VirtualRenderPass {
 
         let mut texture_state = TextureStates::default();
 
+        rp.set_bind_group(
+            TEXTURE_BIND_GROUP_INDEX,
+            &texture_state.create_bind_group(gpu),
+            &[],
+        );
+
         for command in self.commands.iter() {
             match command {
                 Command::SetPipeline(pipeline) => {
                     rp.set_pipeline(&gpu.render_pipelines[pipeline.get_shader()]);
+                    rp.set_push_constants(
+                        wgpu::ShaderStages::FRAGMENT,
+                        0,
+                        &texture_state.to_push_constants(),
+                    );
                     current_vertex_size = pipeline.get_vertex_size();
                 }
                 Command::Draw(vertex_count) => {
@@ -199,15 +212,33 @@ impl VirtualRenderPass {
                         &[],
                     );
                 }
+                Command::ClearTextures => {
+                    texture_state = TextureStates::default();
+                    rp.set_bind_group(
+                        TEXTURE_BIND_GROUP_INDEX,
+                        &texture_state.create_bind_group(gpu),
+                        &[],
+                    );
+                }
                 Command::DrawStaticMesh(index) => {
                     let mesh = &gpu.preloaded_renderer.meshes[*index];
                     rp.set_pipeline(&gpu.render_pipelines[mesh.pipeline.get_shader()]);
+                    rp.set_push_constants(
+                        wgpu::ShaderStages::FRAGMENT,
+                        0,
+                        &texture_state.to_push_constants(),
+                    );
                     rp.set_vertex_buffer(VERTEX_BUFFER_INDEX, mesh.vertex_buffer.slice(..));
                     rp.draw(0..mesh.vertex_count, current_instance - 1..current_instance);
                 }
                 Command::DrawStaticMeshIndexed(index) => {
                     let mesh = &gpu.preloaded_renderer.indexed_meshes[*index];
                     rp.set_pipeline(&gpu.render_pipelines[mesh.pipeline.get_shader()]);
+                    rp.set_push_constants(
+                        wgpu::ShaderStages::FRAGMENT,
+                        0,
+                        &texture_state.to_push_constants(),
+                    );
                     rp.set_vertex_buffer(VERTEX_BUFFER_INDEX, mesh.vertex_buffer.slice(..));
                     rp.set_index_buffer(mesh.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                     rp.draw_indexed(
@@ -216,7 +247,7 @@ impl VirtualRenderPass {
                         current_instance - 1..current_instance,
                     );
                 }
-                Command::DrawSprite(sprite_index) => {
+                Command::DrawSprite(_sprite_index) => {
                     todo!()
                     // let texture = &gpu.textures.textures[*sprite_index];
                     // rp.set_pipeline(&gpu.render_pipelines[Pipeline::Quad2d.get_shader()]);

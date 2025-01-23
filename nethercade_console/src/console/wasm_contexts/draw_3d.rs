@@ -59,6 +59,10 @@ impl Draw3dContext {
             .unwrap();
         linker.func_wrap("env", "draw_sprite", draw_sprite).unwrap();
         linker.func_wrap("env", "set_texture", set_texture).unwrap();
+        linker.func_wrap("env", "set_matcap", set_matcap).unwrap();
+        linker
+            .func_wrap("env", "clear_textures", clear_textures)
+            .unwrap();
 
         // Loading
         linker
@@ -170,8 +174,14 @@ impl Draw3dContext {
             .push(Command::SetMatcap(tex_id, layer, blend_mode));
     }
 
-    fn load_texture(&mut self, data: &[u8], has_alpha: bool) -> i32 {
-        self.vgpu.borrow_mut().load_texture_raw(data, has_alpha) as i32
+    pub fn clear_textures(&mut self) {
+        self.vrp.commands.push(Command::ClearTextures);
+    }
+
+    fn load_texture(&mut self, data: &[u8], width: u32, height: u32, has_alpha: bool) -> i32 {
+        self.vgpu
+            .borrow_mut()
+            .load_texture_raw(data, width, height, has_alpha) as i32
     }
 
     fn load_static_mesh(&mut self, data: &[f32], pipeline: Pipeline) -> i32 {
@@ -322,10 +332,19 @@ fn set_matcap(mut caller: Caller<WasmContexts>, tex_id: i32, layer: i32, blend_m
         .set_matcap(tex_id as usize, layer as usize, blend_mode as usize);
 }
 
+fn clear_textures(mut caller: Caller<WasmContexts>) {
+    if caller.data().draw_3d.state != DrawContextState::Draw {
+        println!("Called clear_textures outside of draw.");
+        return;
+    }
+    caller.data_mut().draw_3d.clear_textures();
+}
+
 fn load_texture(
     mut caller: Caller<WasmContexts>,
     data_ptr: i32,
-    data_len: i32,
+    width: i32,
+    height: i32,
     has_alpha: i32,
 ) -> i32 {
     if caller.data().draw_3d.state != DrawContextState::Init {
@@ -336,8 +355,13 @@ fn load_texture(
     let has_alpha = has_alpha != 0;
     let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
     let (data, store) = mem.data_and_store_mut(&mut caller);
-    let data: &[u8] = &data[data_ptr as usize..(data_ptr + data_len) as usize];
-    store.draw_3d.load_texture(data, has_alpha)
+
+    let byte_count = width * height * if has_alpha { 4 } else { 3 };
+
+    let data: &[u8] = &data[data_ptr as usize..(data_ptr + byte_count) as usize];
+    store
+        .draw_3d
+        .load_texture(data, width as u32, height as u32, has_alpha)
 }
 
 fn load_static_mesh(

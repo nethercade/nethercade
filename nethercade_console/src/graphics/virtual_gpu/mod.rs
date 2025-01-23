@@ -23,8 +23,10 @@ pub const TEXTURE_BIND_GROUP_INDEX: u32 = 1;
 pub const VERTEX_BUFFER_INDEX: u32 = 0;
 pub const INSTANCE_BUFFER_INDEX: u32 = 1;
 
-use eframe::wgpu;
+use eframe::wgpu::{self, PushConstantRange};
 use virtual_render_pass::VirtualRenderPass;
+
+use crate::MAX_PUSH_CONSTANT_SIZE;
 
 pub struct VirtualGpu {
     pub device: Arc<wgpu::Device>,
@@ -36,7 +38,7 @@ pub struct VirtualGpu {
 
     pub immediate_renderer: immediate_renderer::ImmediateRenderer,
     pub preloaded_renderer: preloaded_renderer::PreloadedRenderer,
-    pub quad_renderer: quad_renderer::QuadRenderer,
+    pub _quad_renderer: quad_renderer::QuadRenderer,
     pub textures: textures::Textures,
 }
 
@@ -62,7 +64,10 @@ impl VirtualGpu {
                     &immediate_renderer.bind_group_layout,
                     &textures.bind_group_layout,
                 ],
-                push_constant_ranges: &[],
+                push_constant_ranges: &[PushConstantRange {
+                    stages: wgpu::ShaderStages::FRAGMENT,
+                    range: 0..MAX_PUSH_CONSTANT_SIZE,
+                }],
             });
 
         textures.load_texture_native(
@@ -88,7 +93,7 @@ impl VirtualGpu {
                 format,
             ),
             textures,
-            quad_renderer: quad_renderer::QuadRenderer::new(device, queue),
+            _quad_renderer: quad_renderer::QuadRenderer::new(device, queue),
             preloaded_renderer: preloaded_renderer::PreloadedRenderer::new(),
             immediate_renderer,
             instance_buffer,
@@ -170,9 +175,15 @@ impl VirtualGpu {
             pipeline,
         )
     }
-    pub fn load_texture_raw(&mut self, data: &[u8], has_alpha: bool) -> usize {
+    pub fn load_texture_raw(
+        &mut self,
+        data: &[u8],
+        width: u32,
+        height: u32,
+        has_alpha: bool,
+    ) -> usize {
         self.textures
-            .load_texture_raw(&self.device, &self.queue, data, has_alpha)
+            .load_texture_raw(&self.device, &self.queue, data, width, height, has_alpha)
     }
 }
 

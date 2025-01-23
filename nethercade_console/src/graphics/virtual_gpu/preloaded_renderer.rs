@@ -32,7 +32,7 @@ impl PreloadedRenderer {
         let bytes = vertex_count * attribute_count * 4;
 
         if total_attributes % attribute_count != 0 {
-            panic!("Invalid mesh list, size mismatch");
+            panic!("Invalid mesh list, size mismatch for: {pipeline:?}. Received {total_attributes}, expected multiple of {attribute_count}.");
         }
 
         let vertex_buffer =

@@ -73,7 +73,10 @@ impl Pipeline {
     }
 
     pub fn get_pipeline_buffers(&self) -> [wgpu::VertexBufferLayout<'static>; 2] {
-        [self.get_vertex_buffer_layout(), vertex::model_matrix()]
+        [
+            self.get_vertex_buffer_layout(),
+            vertex::instance_vertex_buffer_layout(),
+        ]
     }
 
     pub fn get_vertex_buffer_layout(&self) -> wgpu::VertexBufferLayout<'static> {

@@ -33,8 +33,7 @@ impl FrameBuffer {
 
         let sampler = device.create_sampler(&textures::texture_sampler_descriptor());
         let view = texture.create_view(&TextureViewDescriptor::default());
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(textures::bind_group_layout_desc());
+        let texture_bind_group_layout = device.create_bind_group_layout(bind_group_layout_desc());
 
         let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &texture_bind_group_layout,
@@ -105,5 +104,29 @@ impl FrameBuffer {
             texture_bind_group,
             pipeline,
         }
+    }
+}
+
+fn bind_group_layout_desc() -> &'static wgpu::BindGroupLayoutDescriptor<'static> {
+    &wgpu::BindGroupLayoutDescriptor {
+        label: Some("Frame buffer bind group layout descriptor"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                count: None,
+            },
+        ],
     }
 }

@@ -14,9 +14,6 @@ pub struct ImmediateRenderer {
     pub camera_pos_buffer: wgpu::Buffer,
     pub bind_group: wgpu::BindGroup,
     pub bind_group_layout: wgpu::BindGroupLayout,
-
-    pub texture_sampler: wgpu::Sampler,
-    pub matcap_sampler: wgpu::Sampler,
 }
 
 impl ImmediateRenderer {
@@ -158,8 +155,6 @@ impl ImmediateRenderer {
             camera_pos_buffer: position_buffer,
             bind_group,
             bind_group_layout,
-            texture_sampler,
-            matcap_sampler,
         }
     }
 }
