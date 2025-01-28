@@ -1,7 +1,7 @@
 use std::{ffi::OsStr, io::Read};
 
 use eframe::{
-    egui::{self, Sense},
+    egui::{self, Sense, ViewportCommand},
     egui_wgpu,
 };
 use egui::Vec2;
@@ -59,8 +59,18 @@ impl eframe::App for ConsoleApp {
 
                 egui::Frame::canvas(ui.style()).show(ui, |ui| {
                     let (width, height) = game.rom.resolution.dimensions();
+                    let width = width as f32 / ctx.pixels_per_point();
+                    let height = height as f32 / ctx.pixels_per_point();
+
+                    let available = ui.available_size();
+                    let scale_x = (available.x / width).floor();
+                    let scale_y = (available.y / height).floor();
+                    let scale_final = scale_x.min(scale_y);
+
+                    ctx.send_viewport_cmd(ViewportCommand::Title(format!("Scale: {scale_final}x")));
+
                     let (rect, response) = ui.allocate_exact_size(
-                        egui::Vec2::new(width as f32, height as f32),
+                        egui::Vec2::new(width * scale_final, height * scale_final),
                         Sense::click(),
                     );
 
@@ -111,11 +121,16 @@ impl eframe::App for ConsoleApp {
                     if let Some(rom) = try_load_rom() {
                         // TODO: Add more players
                         let dimensions = rom.resolution.dimensions();
-                        let resolution = Vec2::new(dimensions.0 as f32, dimensions.1 as f32);
+                        let ppp = ctx.pixels_per_point();
+                        let resolution =
+                            Vec2::new(dimensions.0 as f32 / ppp, dimensions.1 as f32 / ppp);
                         let spacing = &ctx.style().spacing;
-                        let new_size =
-                            resolution + spacing.window_margin.sum() + spacing.item_spacing;
-                        ctx.send_viewport_cmd(egui::ViewportCommand::InnerSize(new_size));
+                        let new_size = resolution
+                            + spacing.window_margin.sum()
+                            + spacing.item_spacing
+                            + spacing.menu_margin.sum();
+                        ctx.send_viewport_cmd(ViewportCommand::InnerSize(new_size));
+                        ctx.send_viewport_cmd(ViewportCommand::MinInnerSize(new_size));
                         self.console.load_rom(rom, self.console.vgpu.clone(), 1);
                     }
                 }
