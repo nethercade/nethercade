@@ -2,6 +2,9 @@ use std::{cell::RefCell, rc::Rc};
 
 use nethercade_core::Rom;
 
+mod audio_context;
+use audio_context::*;
+
 mod data;
 use data::*;
 
@@ -20,6 +23,7 @@ pub struct WasmContexts {
     pub data: DataContext,
     pub draw_3d: Draw3dContext,
     pub input: InputContext,
+    pub audio: AudioContext,
 }
 
 impl WasmContexts {
@@ -28,6 +32,7 @@ impl WasmContexts {
             data: DataContext::new(rom),
             draw_3d: Draw3dContext::new(vgpu),
             input: InputContext::new(num_player),
+            audio: AudioContext::new(),
         }
     }
 
@@ -35,5 +40,6 @@ impl WasmContexts {
         DataContext::link(linker);
         Draw3dContext::link(linker);
         InputContext::link(linker);
+        AudioContext::link(linker);
     }
 }
