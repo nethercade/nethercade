@@ -12,7 +12,10 @@ pub use input::{LocalInputManager, LocalPlayerId, MouseEventCollector};
 
 mod network;
 
-use crate::graphics::{frame_buffer::FrameBuffer, VirtualGpu};
+use crate::{
+    audio::AudioUnit,
+    graphics::{frame_buffer::FrameBuffer, VirtualGpu},
+};
 
 pub struct GameInstance {
     pub store: Store<WasmContexts>,
@@ -40,7 +43,7 @@ impl GameInstance {
         self.call_wasm_func("update");
     }
 
-    pub fn draw(&mut self) {
+    pub fn render(&mut self) {
         {
             let ctx = &mut self.store.data_mut().draw_3d;
             ctx.vrp.reset();
@@ -51,7 +54,7 @@ impl GameInstance {
             ctx.state = DrawContextState::Draw;
         }
 
-        self.call_wasm_func("draw");
+        self.call_wasm_func("render");
 
         {
             let ctx = &mut self.store.data_mut().draw_3d;
@@ -64,6 +67,7 @@ impl GameInstance {
 pub struct Console {
     pub game: Option<GameInstance>,
     pub vgpu: Rc<RefCell<VirtualGpu>>,
+    pub audio: AudioUnit,
 }
 
 impl Console {
@@ -84,6 +88,7 @@ impl Console {
                 format,
             ))),
             game: None,
+            audio: AudioUnit::new(),
         }
     }
 

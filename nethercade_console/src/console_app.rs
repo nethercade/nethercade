@@ -48,6 +48,7 @@ impl ConsoleApp {
 impl eframe::App for ConsoleApp {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         // TODO: Render a File Menu
+        // TODO: Need to lock FPS somehow
         egui::CentralPanel::default().show(ctx, |ui| match &mut self.console.game {
             Some(game) => {
                 // Pre Update Input
@@ -96,7 +97,22 @@ impl eframe::App for ConsoleApp {
                         net_state.mouse_state;
 
                     game.update();
-                    game.draw();
+                    for (index, audio) in game
+                        .store
+                        .data_mut()
+                        .audio
+                        .pushed_audio
+                        .drain(..)
+                        .enumerate()
+                    {
+                        self.console.audio.append_data(
+                            index,
+                            audio.channels,
+                            &audio.data,
+                            audio.sample_rate,
+                        );
+                    }
+                    game.render();
 
                     ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                         rect,

@@ -1,26 +1,36 @@
 // TODO: Write this
 
-use nethercade_core::AUDIO_SAMPLE_RATE;
-use rodio::{buffer::SamplesBuffer, OutputStream, Sink};
+use std::array;
 
+use rodio::{buffer::SamplesBuffer, OutputStream, OutputStreamHandle, Sink};
+
+pub const AUDIO_SINK_COUNT: usize = 32;
 pub struct AudioUnit {
-    sink: Sink,
+    sinks: [Sink; AUDIO_SINK_COUNT],
+    stream_handle: OutputStreamHandle,
+    stream: OutputStream,
 }
 
 impl AudioUnit {
-    pub fn append_data(&self, channels: usize, data: &[f32]) {
-        self.sink
-            .append(SamplesBuffer::new(channels as u16, AUDIO_SAMPLE_RATE, data));
+    pub fn append_data(&self, index: usize, channels: u16, data: &[f32], sample_rate: u32) {
+        if let Some(sink) = self.sinks.get(index) {
+            sink.append(SamplesBuffer::new(channels, sample_rate, data));
+        }
     }
 
     pub fn set_volume(&self, volume: f32) {
-        self.sink.set_volume(volume);
+        for sink in self.sinks.iter() {
+            sink.set_volume(volume);
+        }
     }
 
     pub fn new() -> Self {
-        let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-        let sink = Sink::try_new(&stream_handle).unwrap();
-
-        Self { sink }
+        let (stream, stream_handle) = OutputStream::try_default().unwrap();
+        let sinks = array::from_fn(|_| Sink::try_new(&stream_handle).unwrap());
+        Self {
+            sinks,
+            stream_handle,
+            stream,
+        }
     }
 }
