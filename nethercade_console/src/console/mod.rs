@@ -71,10 +71,6 @@ pub struct Console {
 }
 
 impl Console {
-    pub fn get_frame_buffer(&self) -> Arc<FrameBuffer> {
-        self.vgpu.borrow().frame_buffer.clone()
-    }
-
     pub fn new(
         device: &Arc<wgpu::Device>,
         queue: &Arc<wgpu::Queue>,

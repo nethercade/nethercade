@@ -1,22 +1,20 @@
 use std::{ffi::OsStr, io::Read};
 
-use eframe::{
-    egui::{self, Sense, ViewportCommand},
-    egui_wgpu,
-};
-use egui::Vec2;
+use eframe::egui::{self, Sense, ViewportCommand};
+use egui::{pos2, Color32, Rect, TextureId, Vec2};
 use gilrs::Gilrs;
 use nethercade_core::Rom;
 
 use crate::{
     console::{Console, LocalInputManager, LocalPlayerId, MouseEventCollector},
-    graphics::VirtualGpuCallback,
+    graphics::textures::texture_sampler_descriptor,
 };
 
 pub struct ConsoleApp {
     console: Console,
     input_manager: LocalInputManager,
     gilrs: Gilrs,
+    render_texture: TextureId,
 }
 
 impl ConsoleApp {
@@ -29,18 +27,21 @@ impl ConsoleApp {
         let format = wgpu_render_state.target_format;
 
         let console = Console::new(&device, &queue, format);
-        let frame_buffer = console.get_frame_buffer();
 
-        wgpu_render_state
+        let render_texture = wgpu_render_state
             .renderer
             .write()
-            .callback_resources
-            .insert(frame_buffer);
+            .register_native_texture_with_sampler_options(
+                &device,
+                &console.vgpu.borrow().frame_buffer.view,
+                texture_sampler_descriptor(),
+            );
 
         Some(Self {
             console,
             input_manager: LocalInputManager::new(),
             gilrs: Gilrs::new().unwrap(),
+            render_texture,
         })
     }
 }
@@ -49,6 +50,7 @@ impl eframe::App for ConsoleApp {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         // TODO: Render a File Menu
         // TODO: Need to lock FPS somehow
+
         egui::CentralPanel::default().show(ctx, |ui| match &mut self.console.game {
             Some(game) => {
                 // Pre Update Input
@@ -57,68 +59,66 @@ impl eframe::App for ConsoleApp {
                 let held_keys = ctx.input(|i| i.keys_down.clone());
                 // Handle Mouse
                 let mouse_events = frame_mouse_input(ctx);
+                let (width, height) = game.rom.resolution.dimensions();
+                let width = width as f32 / ctx.pixels_per_point();
+                let height = height as f32 / ctx.pixels_per_point();
 
-                egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                    let (width, height) = game.rom.resolution.dimensions();
-                    let width = width as f32 / ctx.pixels_per_point();
-                    let height = height as f32 / ctx.pixels_per_point();
+                let available = ui.available_size();
+                let scale_x = (available.x / width).floor();
+                let scale_y = (available.y / height).floor();
+                let scale_final = scale_x.min(scale_y);
 
-                    let available = ui.available_size();
-                    let scale_x = (available.x / width).floor();
-                    let scale_y = (available.y / height).floor();
-                    let scale_final = scale_x.min(scale_y);
+                ctx.send_viewport_cmd(ViewportCommand::Title(format!("Scale: {scale_final}x")));
 
-                    ctx.send_viewport_cmd(ViewportCommand::Title(format!("Scale: {scale_final}x")));
+                let (rect, response) = ui.allocate_exact_size(
+                    egui::Vec2::new(width * scale_final, height * scale_final),
+                    Sense::click(),
+                );
 
-                    let (rect, response) = ui.allocate_exact_size(
-                        egui::Vec2::new(width * scale_final, height * scale_final),
-                        Sense::click(),
+                let mouse_pos = if let Some(hover) = response.hover_pos() {
+                    let mut pos = hover - response.interact_rect.left_top();
+                    pos.x = pos.x.clamp(0.0, width as f32);
+                    pos.y = pos.y.clamp(0.0, height as f32);
+                    Some(pos)
+                } else {
+                    None
+                };
+
+                let net_state = self.input_manager.generate_input_state(
+                    LocalPlayerId(0),
+                    &mouse_events,
+                    mouse_pos,
+                    &held_keys,
+                    &self.gilrs,
+                );
+
+                game.store.data_mut().input.input_entries[0].current = net_state.input_state;
+                game.store.data_mut().input.input_entries[0].current_mouse = net_state.mouse_state;
+
+                game.update();
+                for (index, audio) in game
+                    .store
+                    .data_mut()
+                    .audio
+                    .pushed_audio
+                    .drain(..)
+                    .enumerate()
+                {
+                    self.console.audio.append_data(
+                        index,
+                        audio.channels,
+                        &audio.data,
+                        audio.sample_rate,
                     );
+                }
+                game.render();
 
-                    let mouse_pos = if let Some(hover) = response.hover_pos() {
-                        let mut pos = hover - response.interact_rect.left_top();
-                        pos.x = pos.x.clamp(0.0, width as f32);
-                        pos.y = pos.y.clamp(0.0, height as f32);
-                        Some(pos)
-                    } else {
-                        None
-                    };
-
-                    let net_state = self.input_manager.generate_input_state(
-                        LocalPlayerId(0),
-                        &mouse_events,
-                        mouse_pos,
-                        &held_keys,
-                        &self.gilrs,
-                    );
-
-                    game.store.data_mut().input.input_entries[0].current = net_state.input_state;
-                    game.store.data_mut().input.input_entries[0].current_mouse =
-                        net_state.mouse_state;
-
-                    game.update();
-                    for (index, audio) in game
-                        .store
-                        .data_mut()
-                        .audio
-                        .pushed_audio
-                        .drain(..)
-                        .enumerate()
-                    {
-                        self.console.audio.append_data(
-                            index,
-                            audio.channels,
-                            &audio.data,
-                            audio.sample_rate,
-                        );
-                    }
-                    game.render();
-
-                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                        rect,
-                        VirtualGpuCallback,
-                    ));
-                });
+                ui.painter().image(
+                    self.render_texture,
+                    rect,
+                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                    Color32::WHITE,
+                );
 
                 // Post Update Input
                 // TODO: Clean this up

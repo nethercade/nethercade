@@ -5,9 +5,8 @@ mod mesh;
 pub mod pipeline;
 mod preloaded_renderer;
 mod quad_renderer;
-mod textures;
+pub mod textures;
 mod vertex;
-mod virtual_gpu_callback;
 pub mod virtual_render_pass;
 
 use std::sync::Arc;
@@ -15,7 +14,6 @@ use std::sync::Arc;
 use nethercade_core::Resolution;
 use pipeline::Pipeline;
 use textures::DepthTexture;
-pub use virtual_gpu_callback::*;
 
 pub const PER_FRAME_BIND_GROUP_INDEX: u32 = 0;
 pub const TEXTURE_BIND_GROUP_INDEX: u32 = 1;
@@ -34,7 +32,7 @@ pub struct VirtualGpu {
 
     pub render_pipelines: [wgpu::RenderPipeline; 8],
     pub instance_buffer: wgpu::Buffer,
-    pub frame_buffer: Arc<frame_buffer::FrameBuffer>,
+    pub frame_buffer: frame_buffer::FrameBuffer,
 
     pub immediate_renderer: immediate_renderer::ImmediateRenderer,
     pub preloaded_renderer: preloaded_renderer::PreloadedRenderer,
@@ -97,7 +95,7 @@ impl VirtualGpu {
             preloaded_renderer: preloaded_renderer::PreloadedRenderer::new(),
             immediate_renderer,
             instance_buffer,
-            frame_buffer: Arc::new(frame_buffer::FrameBuffer::new(device, resolution, format)),
+            frame_buffer: frame_buffer::FrameBuffer::new(device, resolution, format),
         }
     }
 
