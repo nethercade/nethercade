@@ -12,10 +12,7 @@ pub use input::{LocalInputManager, LocalPlayerId, MouseEventCollector};
 
 mod network;
 
-use crate::{
-    audio::AudioUnit,
-    graphics::{frame_buffer::FrameBuffer, VirtualGpu},
-};
+use crate::{audio::AudioUnit, graphics::VirtualGpu};
 
 pub struct GameInstance {
     pub store: Store<WasmContexts>,

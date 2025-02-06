@@ -1,4 +1,8 @@
-use std::{ffi::OsStr, io::Read};
+use std::{
+    ffi::OsStr,
+    io::Read,
+    time::{Duration, Instant},
+};
 
 use eframe::egui::{self, Sense, ViewportCommand};
 use egui::{pos2, Color32, Rect, TextureId, Vec2};
@@ -15,6 +19,8 @@ pub struct ConsoleApp {
     input_manager: LocalInputManager,
     gilrs: Gilrs,
     render_texture: TextureId,
+    current_time: Instant,
+    accumulator: Duration,
 }
 
 impl ConsoleApp {
@@ -42,6 +48,8 @@ impl ConsoleApp {
             input_manager: LocalInputManager::new(),
             gilrs: Gilrs::new().unwrap(),
             render_texture,
+            current_time: Instant::now(),
+            accumulator: Duration::default(),
         })
     }
 }
@@ -84,34 +92,59 @@ impl eframe::App for ConsoleApp {
                     None
                 };
 
-                let net_state = self.input_manager.generate_input_state(
-                    LocalPlayerId(0),
-                    &mouse_events,
-                    mouse_pos,
-                    &held_keys,
-                    &self.gilrs,
-                );
+                let new_time = Instant::now();
+                let frame_time = new_time.duration_since(self.current_time);
+                self.current_time = new_time;
 
-                game.store.data_mut().input.input_entries[0].current = net_state.input_state;
-                game.store.data_mut().input.input_entries[0].current_mouse = net_state.mouse_state;
+                self.accumulator += frame_time;
+                let dt = std::time::Duration::from_secs_f32(game.rom.frame_rate.frame_time());
 
-                game.update();
-                for (index, audio) in game
-                    .store
-                    .data_mut()
-                    .audio
-                    .pushed_audio
-                    .drain(..)
-                    .enumerate()
-                {
-                    self.console.audio.append_data(
-                        index,
-                        audio.channels,
-                        &audio.data,
-                        audio.sample_rate,
+                while self.accumulator >= dt {
+                    // Update Game
+                    let net_state = self.input_manager.generate_input_state(
+                        LocalPlayerId(0),
+                        &mouse_events,
+                        mouse_pos,
+                        &held_keys,
+                        &self.gilrs,
                     );
+
+                    game.store.data_mut().input.input_entries[0].current = net_state.input_state;
+                    game.store.data_mut().input.input_entries[0].current_mouse =
+                        net_state.mouse_state;
+
+                    game.update();
+                    for (index, audio) in game
+                        .store
+                        .data_mut()
+                        .audio
+                        .pushed_audio
+                        .drain(..)
+                        .enumerate()
+                    {
+                        self.console.audio.append_data(
+                            index,
+                            audio.channels,
+                            &audio.data,
+                            audio.sample_rate,
+                        );
+                    }
+                    game.render();
+
+                    // Post Update Input
+                    // TODO: Clean this up
+                    game.store
+                        .data_mut()
+                        .input
+                        .input_entries
+                        .iter_mut()
+                        .for_each(|inputs| {
+                            inputs.previous = inputs.current.buttons;
+                            inputs.previous_mouse = inputs.current_mouse;
+                        });
+                    // End Update
+                    self.accumulator -= dt;
                 }
-                game.render();
 
                 ui.painter().image(
                     self.render_texture,
@@ -119,18 +152,6 @@ impl eframe::App for ConsoleApp {
                     Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
                     Color32::WHITE,
                 );
-
-                // Post Update Input
-                // TODO: Clean this up
-                game.store
-                    .data_mut()
-                    .input
-                    .input_entries
-                    .iter_mut()
-                    .for_each(|inputs| {
-                        inputs.previous = inputs.current.buttons;
-                        inputs.previous_mouse = inputs.current_mouse;
-                    });
             }
             None => {
                 if ui.button("Load Rom").clicked() {

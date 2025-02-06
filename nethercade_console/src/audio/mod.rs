@@ -7,8 +7,8 @@ use rodio::{buffer::SamplesBuffer, OutputStream, OutputStreamHandle, Sink};
 pub const AUDIO_SINK_COUNT: usize = 32;
 pub struct AudioUnit {
     sinks: [Sink; AUDIO_SINK_COUNT],
-    stream_handle: OutputStreamHandle,
-    stream: OutputStream,
+    _stream_handle: OutputStreamHandle,
+    _stream: OutputStream,
 }
 
 impl AudioUnit {
@@ -25,12 +25,12 @@ impl AudioUnit {
     }
 
     pub fn new() -> Self {
-        let (stream, stream_handle) = OutputStream::try_default().unwrap();
-        let sinks = array::from_fn(|_| Sink::try_new(&stream_handle).unwrap());
+        let (_stream, _stream_handle) = OutputStream::try_default().unwrap();
+        let sinks = array::from_fn(|_| Sink::try_new(&_stream_handle).unwrap());
         Self {
             sinks,
-            stream_handle,
-            stream,
+            _stream_handle,
+            _stream,
         }
     }
 }
