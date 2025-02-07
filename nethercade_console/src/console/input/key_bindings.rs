@@ -22,7 +22,7 @@ impl KeyBindings {
         let path = PathBuf::from(INPUT_FILE_NAME);
         if path.exists() {
             match std::fs::read(INPUT_FILE_NAME) {
-                Ok(file) => match serde_json::from_slice::<Self>(&file) {
+                Ok(file) => match sonic_rs::from_slice::<Self>(&file) {
                     Ok(key_bindings) => {
                         println!("Successfully loaded key bindings from: {INPUT_FILE_NAME}",);
                         return key_bindings;
@@ -40,7 +40,7 @@ impl KeyBindings {
             println!("{INPUT_FILE_NAME} not found. Generating default input file.");
             let bindings = Self::default();
 
-            let json = serde_json::to_string_pretty(&bindings).unwrap();
+            let json = sonic_rs::to_string_pretty(&bindings).unwrap();
 
             match std::fs::write(path, json) {
                 Ok(()) => println!("Successfully generated default {INPUT_FILE_NAME}"),

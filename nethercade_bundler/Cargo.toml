@@ -3,10 +3,15 @@ name = "nethercade_bundler"
 version = "0.1.0"
 edition = "2021"
 
-
 [[bin]]
 name = "bundle"
 path = "src/main.rs"
 
 [dependencies]
 nethercade_core = { path = "../nethercade_core" }
+
+serde = { workspace = true }
+bitcode = { workspace = true }
+zstd = { workspace = true }
+sonic-rs = { workspace = true }
+clap = { workspace = true }

@@ -7,7 +7,7 @@ use std::{
 use eframe::egui::{self, Sense, ViewportCommand};
 use egui::{pos2, Color32, Rect, TextureId, Vec2};
 use gilrs::Gilrs;
-use nethercade_core::Rom;
+use nethercade_core::{Rom, ROM_FILE_EXTENSION};
 
 use crate::{
     console::{Console, LocalInputManager, LocalPlayerId, MouseEventCollector},
@@ -180,14 +180,19 @@ impl eframe::App for ConsoleApp {
 }
 
 fn try_load_rom() -> Option<Rom> {
-    // TODO: Add filters for .nzrom and .wasm
-    let path = rfd::FileDialog::new().pick_file()?;
+    // TODO: Add error logging when something goes wrong
+    let path = rfd::FileDialog::new()
+        .add_filter("nzrom (.nzom), wasm (.wasm)", &["nzom", "wasm"])
+        .pick_file()?;
 
     match path.extension().and_then(OsStr::to_str) {
-        Some("nzrom") => {
-            let mut file = std::fs::File::open(path).ok()?;
+        Some(ROM_FILE_EXTENSION) => {
+            let file = std::fs::File::open(path).ok()?;
             let mut bytes = Vec::new();
-            file.read_to_end(&mut bytes).ok()?;
+            zstd::Decoder::new(file)
+                .ok()?
+                .read_to_end(&mut bytes)
+                .ok()?;
             Some(bitcode::decode(&bytes).ok()?)
         }
         Some("wasm") => {
