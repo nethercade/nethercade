@@ -6,11 +6,15 @@ use std::{
 
 use eframe::egui::{self, Sense, ViewportCommand};
 use egui::{pos2, Color32, Rect, TextureId, Vec2};
+use ggrs::{P2PSession, SessionState};
 use gilrs::Gilrs;
 use nethercade_core::{Rom, ROM_FILE_EXTENSION};
 
 use crate::{
-    console::{Console, LocalInputManager, LocalPlayerId, MouseEventCollector},
+    console::{
+        gui::PlayModeGui, network_session, Console, GameInstance, LocalInputManager, LocalPlayerId,
+        MouseEventCollector,
+    },
     graphics::textures::texture_sampler_descriptor,
 };
 
@@ -21,6 +25,10 @@ pub struct ConsoleApp {
     render_texture: TextureId,
     current_time: Instant,
     accumulator: Duration,
+
+    play_mode: PlayModeGui,
+
+    session: Option<P2PSession<GameInstance>>,
 }
 
 impl ConsoleApp {
@@ -50,6 +58,8 @@ impl ConsoleApp {
             render_texture,
             current_time: Instant::now(),
             accumulator: Duration::default(),
+            play_mode: PlayModeGui::default(),
+            session: None,
         })
     }
 }
@@ -59,118 +69,143 @@ impl eframe::App for ConsoleApp {
         // TODO: Render a File Menu
         // TODO: Need to lock FPS somehow
 
-        egui::CentralPanel::default().show(ctx, |ui| match &mut self.console.game {
-            Some(game) => {
-                // Pre Update Input
+        egui::CentralPanel::default().show(ctx, |ui| {
+            match (&mut self.console.game, &mut self.session) {
+                (Some(game), Some(session)) => {
+                    // Pre Update Input
 
-                // Handle Keyboard
-                let held_keys = ctx.input(|i| i.keys_down.clone());
-                // Handle Mouse
-                let mouse_events = frame_mouse_input(ctx);
-                let (width, height) = game.rom.resolution.dimensions();
-                let width = width as f32 / ctx.pixels_per_point();
-                let height = height as f32 / ctx.pixels_per_point();
+                    // Handle Keyboard
+                    let held_keys = ctx.input(|i| i.keys_down.clone());
+                    // Handle Mouse
+                    let mouse_events = frame_mouse_input(ctx);
+                    let (width, height) = game.rom.resolution.dimensions();
+                    let width = width as f32 / ctx.pixels_per_point();
+                    let height = height as f32 / ctx.pixels_per_point();
 
-                let available = ui.available_size();
-                let scale_x = (available.x / width).floor();
-                let scale_y = (available.y / height).floor();
-                let scale_final = scale_x.min(scale_y);
+                    let available = ui.available_size();
+                    let scale_x = (available.x / width).floor();
+                    let scale_y = (available.y / height).floor();
+                    let scale_final = scale_x.min(scale_y);
 
-                ctx.send_viewport_cmd(ViewportCommand::Title(format!("Scale: {scale_final}x")));
+                    ctx.send_viewport_cmd(ViewportCommand::Title(format!("Scale: {scale_final}x")));
 
-                let (rect, response) = ui.allocate_exact_size(
-                    egui::Vec2::new(width * scale_final, height * scale_final),
-                    Sense::click(),
-                );
-
-                let mouse_pos = if let Some(hover) = response.hover_pos() {
-                    let mut pos = hover - response.interact_rect.left_top();
-                    pos.x = pos.x.clamp(0.0, width as f32);
-                    pos.y = pos.y.clamp(0.0, height as f32);
-                    Some(pos)
-                } else {
-                    None
-                };
-
-                let new_time = Instant::now();
-                let frame_time = new_time.duration_since(self.current_time);
-                self.current_time = new_time;
-
-                self.accumulator += frame_time;
-                let dt = std::time::Duration::from_secs_f32(game.rom.frame_rate.frame_time());
-
-                while self.accumulator >= dt {
-                    // Update Game
-                    let net_state = self.input_manager.generate_input_state(
-                        LocalPlayerId(0),
-                        &mouse_events,
-                        mouse_pos,
-                        &held_keys,
-                        &self.gilrs,
+                    let (rect, response) = ui.allocate_exact_size(
+                        egui::Vec2::new(width * scale_final, height * scale_final),
+                        Sense::click(),
                     );
 
-                    game.store.data_mut().input.input_entries[0].current = net_state.input_state;
-                    game.store.data_mut().input.input_entries[0].current_mouse =
-                        net_state.mouse_state;
+                    let mouse_pos = if let Some(hover) = response.hover_pos() {
+                        let mut pos = hover - response.interact_rect.left_top();
+                        pos.x = pos.x.clamp(0.0, width as f32);
+                        pos.y = pos.y.clamp(0.0, height as f32);
+                        Some(pos)
+                    } else {
+                        None
+                    };
 
-                    game.update();
-                    for (index, audio) in game
-                        .store
-                        .data_mut()
-                        .audio
-                        .pushed_audio
-                        .drain(..)
-                        .enumerate()
-                    {
-                        self.console.audio.append_data(
-                            index,
-                            audio.channels,
-                            &audio.data,
-                            audio.sample_rate,
-                        );
+                    session.poll_remote_clients();
+
+                    let new_time = Instant::now();
+                    let frame_time = new_time.duration_since(self.current_time);
+                    self.current_time = new_time;
+
+                    self.accumulator += frame_time;
+                    let dt = std::time::Duration::from_secs_f32(game.rom.frame_rate.frame_time());
+
+                    while self.accumulator >= dt {
+                        // Update Game
+                        self.accumulator -= dt;
+
+                        if session.current_state() == SessionState::Synchronizing {
+                            continue;
+                        }
+
+                        let mut local_player_id = LocalPlayerId(0);
+                        for handle in session.local_player_handles() {
+                            session
+                                .add_local_input(
+                                    handle,
+                                    self.input_manager.generate_input_state(
+                                        local_player_id,
+                                        &mouse_events,
+                                        mouse_pos,
+                                        &held_keys,
+                                        &self.gilrs,
+                                    ),
+                                )
+                                .unwrap();
+                            local_player_id.0 += 1;
+                        }
+
+                        // Update internal state
+                        match session.advance_frame() {
+                            Ok(requests) => {
+                                game.handle_requests(requests);
+                            }
+                            Err(e) => panic!("{}", e),
+                        }
+
+                        // Push audio after updating
+                        for (index, audio) in game.this_frame_audio.iter().enumerate() {
+                            self.console.audio.append_data(
+                                index,
+                                audio.channels,
+                                &audio.data,
+                                audio.sample_rate,
+                            );
+                        }
+
+                        game.render();
                     }
-                    game.render();
 
-                    // Post Update Input
-                    // TODO: Clean this up
-                    game.store
-                        .data_mut()
-                        .input
-                        .input_entries
-                        .iter_mut()
-                        .for_each(|inputs| {
-                            inputs.previous = inputs.current.buttons;
-                            inputs.previous_mouse = inputs.current_mouse;
-                        });
-                    // End Update
-                    self.accumulator -= dt;
+                    ui.painter().image(
+                        self.render_texture,
+                        rect,
+                        Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
+                        Color32::WHITE,
+                    );
                 }
+                (None, None) => {
+                    self.play_mode.draw(ui);
 
-                ui.painter().image(
-                    self.render_texture,
-                    rect,
-                    Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)),
-                    Color32::WHITE,
-                );
-            }
-            None => {
-                if ui.button("Load Rom").clicked() {
-                    if let Some(rom) = try_load_rom() {
-                        // TODO: Add more players
-                        let dimensions = rom.resolution.dimensions();
-                        let ppp = ctx.pixels_per_point();
-                        let resolution =
-                            Vec2::new(dimensions.0 as f32 / ppp, dimensions.1 as f32 / ppp);
-                        let spacing = &ctx.style().spacing;
-                        let new_size = resolution
-                            + spacing.window_margin.sum()
-                            + spacing.item_spacing
-                            + spacing.menu_margin.sum();
-                        ctx.send_viewport_cmd(ViewportCommand::InnerSize(new_size));
-                        ctx.send_viewport_cmd(ViewportCommand::MinInnerSize(new_size));
-                        self.console.load_rom(rom, self.console.vgpu.clone(), 1);
+                    if ui.button("Load Rom").clicked() {
+                        if let Some(rom) = try_load_rom() {
+                            // TODO: Parse the stuff above to allow networked play
+
+                            let Some(session_descriptor) =
+                                self.play_mode.generate_session_descriptor(1)
+                            else {
+                                return;
+                            };
+
+                            let session = network_session::init_session(
+                                &rom,
+                                session_descriptor.port,
+                                &session_descriptor.player_types,
+                            );
+
+                            let dimensions = rom.resolution.dimensions();
+                            let ppp = ctx.pixels_per_point();
+                            let resolution =
+                                Vec2::new(dimensions.0 as f32 / ppp, dimensions.1 as f32 / ppp);
+                            let spacing = &ctx.style().spacing;
+                            let new_size = resolution
+                                + spacing.window_margin.sum()
+                                + spacing.item_spacing
+                                + spacing.menu_margin.sum();
+                            ctx.send_viewport_cmd(ViewportCommand::InnerSize(new_size));
+                            ctx.send_viewport_cmd(ViewportCommand::MinInnerSize(new_size));
+                            let game_instance = Console::load_rom(
+                                rom,
+                                self.console.vgpu.clone(),
+                                session.num_players(),
+                            );
+                            self.console.game = Some(game_instance);
+                            self.session = Some(session);
+                        }
                     }
                 }
+                _ => panic!("Error state!"),
             }
         });
 
@@ -182,7 +217,7 @@ impl eframe::App for ConsoleApp {
 fn try_load_rom() -> Option<Rom> {
     // TODO: Add error logging when something goes wrong
     let path = rfd::FileDialog::new()
-        .add_filter("nzrom (.nzom), wasm (.wasm)", &["nzom", "wasm"])
+        .add_filter("nzrom (.nzrom), wasm (.wasm)", &["nzrom", "wasm"])
         .pick_file()?;
 
     match path.extension().and_then(OsStr::to_str) {

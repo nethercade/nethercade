@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use bytemuck::cast_slice;
 use wasmtime::{Caller, Linker};
 
@@ -7,9 +9,10 @@ pub struct AudioContext {
     pub pushed_audio: Vec<PushedAudio>,
 }
 
+#[derive(Clone)]
 pub struct PushedAudio {
     pub channels: u16,
-    pub data: Box<[f32]>,
+    pub data: Arc<Box<[f32]>>,
     pub sample_rate: u32,
 }
 
@@ -27,7 +30,7 @@ impl AudioContext {
     fn push_audio(&mut self, channels: u16, data: &[f32], sample_rate: u32) {
         self.pushed_audio.push(PushedAudio {
             channels,
-            data: data.into(),
+            data: Arc::new(data.into()),
             sample_rate,
         })
     }

@@ -1,6 +1,7 @@
 use bytemuck::{Pod, Zeroable};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default, Clone, Copy, Pod, Zeroable, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Pod, Zeroable, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(C)]
 pub struct MouseState(pub u64);
 

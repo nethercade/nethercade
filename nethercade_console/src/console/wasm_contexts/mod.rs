@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use nethercade_core::Rom;
 
 mod audio_context;
+pub use audio_context::PushedAudio;
 use audio_context::*;
 
 mod data;

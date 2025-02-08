@@ -34,7 +34,7 @@ impl FrameRate {
             FrameRate::UltraFast => 3,
             FrameRate::Fast => 2,
             FrameRate::Retro => 1,
-            FrameRate::Cinematic => 0,
+            FrameRate::Cinematic => 1,
         }
     }
 
