@@ -12,8 +12,9 @@ use nethercade_core::{Rom, ROM_FILE_EXTENSION};
 
 use crate::{
     console::{
-        gui::PlayModeGui, network_session, Console, GameInstance, LocalInputManager, LocalPlayerId,
-        MouseEventCollector,
+        gui::PlayModeGui,
+        network_session::{self, GgrsInstance},
+        Console, LocalInputManager, LocalPlayerId, MouseEventCollector,
     },
     graphics::textures::texture_sampler_descriptor,
 };
@@ -28,7 +29,7 @@ pub struct ConsoleApp {
 
     play_mode: PlayModeGui,
 
-    session: Option<P2PSession<GameInstance>>,
+    session: Option<P2PSession<GgrsInstance>>,
 }
 
 impl ConsoleApp {
@@ -104,6 +105,13 @@ impl eframe::App for ConsoleApp {
                     };
 
                     session.poll_remote_clients();
+
+                    // TODO: Do something with these events
+                    // Like show a "Sync" icon
+                    // or handle disconnects
+                    for event in session.events() {
+                        println!("{:?}", event);
+                    }
 
                     let new_time = Instant::now();
                     let frame_time = new_time.duration_since(self.current_time);

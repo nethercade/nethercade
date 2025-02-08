@@ -18,6 +18,7 @@ impl AudioUnit {
         }
     }
 
+    // TODO: Add this to the audio context
     pub fn set_volume(&self, volume: f32) {
         for sink in self.sinks.iter() {
             sink.set_volume(volume);

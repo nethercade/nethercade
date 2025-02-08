@@ -27,3 +27,4 @@ paste = { workspace = true }
 strum = { workspace = true }
 sonic-rs = { workspace = true }
 zstd = { workspace = true }
+fastrand = { workspace = true }

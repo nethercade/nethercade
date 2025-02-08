@@ -4,6 +4,7 @@ use eframe::wgpu;
 use ggrs::{GgrsRequest, InputStatus};
 use nethercade_core::{Resolution, Rom};
 use network::{NetworkInputState, WasmConsoleState};
+use network_session::GgrsInstance;
 use wasmtime::{Config, Engine, Instance, Linker, Module, Store};
 
 mod wasm_contexts;
@@ -66,7 +67,7 @@ impl GameInstance {
         }
     }
 
-    pub fn handle_requests(&mut self, requests: Vec<GgrsRequest<Self>>) {
+    pub fn handle_requests(&mut self, requests: Vec<GgrsRequest<GgrsInstance>>) {
         for request in requests {
             match request {
                 GgrsRequest::LoadGameState { cell, .. } => {
@@ -188,7 +189,10 @@ impl Console {
         let mut linker = Linker::new(&engine);
         WasmContexts::link(&mut linker);
 
-        let mut store = Store::new(&engine, WasmContexts::new(&rom, vgpu.clone(), num_players));
+        let mut store = Store::new(
+            &engine,
+            WasmContexts::new(&rom, vgpu.clone(), num_players, 0xA12CADE),
+        );
         let instance = linker.instantiate(&mut store, &module).unwrap();
 
         vgpu.borrow_mut().resize(rom.resolution);
