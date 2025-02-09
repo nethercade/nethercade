@@ -34,7 +34,6 @@ struct TextureStates {
 }
 
 impl TextureStates {
-    // TODO: Use this!
     fn to_push_constants(&self) -> [u8; 8] {
         let mut out = [0; 8];
 

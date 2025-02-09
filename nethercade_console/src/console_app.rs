@@ -68,7 +68,6 @@ impl ConsoleApp {
 impl eframe::App for ConsoleApp {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         // TODO: Render a File Menu
-        // TODO: Need to lock FPS somehow
 
         egui::CentralPanel::default().show(ctx, |ui| {
             match (&mut self.console.game, &mut self.session) {
@@ -178,8 +177,6 @@ impl eframe::App for ConsoleApp {
 
                     if ui.button("Load Rom").clicked() {
                         if let Some(rom) = try_load_rom() {
-                            // TODO: Parse the stuff above to allow networked play
-
                             let Some(session_descriptor) =
                                 self.play_mode.generate_session_descriptor(1)
                             else {
