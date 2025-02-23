@@ -8,7 +8,7 @@ use std::{
 
 use clap::Parser;
 use config::Config;
-use nethercade_core::{Rom, ROM_FILE_EXTENSION};
+use nethercade_core::{ROM_FILE_EXTENSION, Rom};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]

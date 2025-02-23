@@ -1,7 +1,7 @@
 use paste::paste;
 
-use crate::console::input::{ButtonCode, InputState, PlayerInputEntry, MOUSE_INVALID_BIT};
 use crate::console::WasmContexts;
+use crate::console::input::{ButtonCode, InputState, MOUSE_INVALID_BIT, PlayerInputEntry};
 
 use wasmtime::{Caller, Linker};
 

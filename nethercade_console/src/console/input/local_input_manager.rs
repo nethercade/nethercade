@@ -6,11 +6,11 @@ use gilrs::{Axis, Button, Gamepad, GamepadId, Gilrs};
 use crate::console::network::NetworkInputState;
 
 use super::{
+    AnalogStick as AS, ButtonCode, InputMode, InputState, LocalKeyboardId, LocalPlayerId,
+    MouseState,
     gamepad_bindings::GamepadBindings,
     key_bindings::KeyBindings,
     key_types::{AnalogStick, KeyType, TriggerSide},
-    AnalogStick as AS, ButtonCode, InputMode, InputState, LocalKeyboardId, LocalPlayerId,
-    MouseState,
 };
 
 #[derive(Default)]

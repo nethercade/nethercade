@@ -1,6 +1,6 @@
 use std::array;
 
-use rodio::{buffer::SamplesBuffer, OutputStream, OutputStreamHandle, Sink};
+use rodio::{OutputStream, OutputStreamHandle, Sink, buffer::SamplesBuffer};
 
 pub const AUDIO_SINK_COUNT: usize = 32;
 pub struct AudioUnit {

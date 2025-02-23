@@ -1,7 +1,7 @@
 use bytemuck::bytes_of;
 use eframe::wgpu;
 
-use super::{pipeline::Pipeline, VirtualGpu, TEXTURE_BIND_GROUP_INDEX, VERTEX_BUFFER_INDEX};
+use super::{TEXTURE_BIND_GROUP_INDEX, VERTEX_BUFFER_INDEX, VirtualGpu, pipeline::Pipeline};
 pub struct VirtualRenderPass {
     pub commands: Vec<Command>,
 

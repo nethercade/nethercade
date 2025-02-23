@@ -5,8 +5,8 @@ use hashbrown::HashMap;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    key_types::{AnalogStick, KeyType, TriggerSide},
     ButtonCode,
+    key_types::{AnalogStick, KeyType, TriggerSide},
 };
 
 const INPUT_FILE_NAME: &str = "keyboardInput.json";
@@ -54,40 +54,42 @@ impl KeyBindings {
 
 impl Default for KeyBindings {
     fn default() -> Self {
-        let buttons = vec![[
-            //Sticks
-            (Key::X, KeyType::Button(ButtonCode::LeftStick)),
-            (Key::B, KeyType::Button(ButtonCode::RightStick)),
-            //Shoulders
-            (Key::E, KeyType::Button(ButtonCode::LeftShoulder)),
-            (Key::Q, KeyType::Trigger(TriggerSide::LeftTrigger)),
-            (Key::R, KeyType::Button(ButtonCode::RightShoulder)),
-            (Key::Y, KeyType::Trigger(TriggerSide::RightTrigger)),
-            //DPad:
-            (Key::ArrowUp, KeyType::Button(ButtonCode::Up)),
-            (Key::ArrowDown, KeyType::Button(ButtonCode::Down)),
-            (Key::ArrowLeft, KeyType::Button(ButtonCode::Left)),
-            (Key::ArrowRight, KeyType::Button(ButtonCode::Right)),
-            //Buttons:
-            (Key::U, KeyType::Button(ButtonCode::ButtonA)),
-            (Key::I, KeyType::Button(ButtonCode::ButtonB)),
-            (Key::J, KeyType::Button(ButtonCode::ButtonC)),
-            (Key::K, KeyType::Button(ButtonCode::ButtonD)),
-            (Key::Num5, KeyType::Button(ButtonCode::Start)),
-            (Key::Num6, KeyType::Button(ButtonCode::Select)),
-            //Left Stick Axis
-            (Key::W, KeyType::AnalogStick(AnalogStick::LeftYPositive)),
-            (Key::S, KeyType::AnalogStick(AnalogStick::LeftYNegative)),
-            (Key::A, KeyType::AnalogStick(AnalogStick::LeftXNegative)),
-            (Key::D, KeyType::AnalogStick(AnalogStick::LeftXPositive)),
-            //Right Stick Axis,
-            (Key::T, KeyType::AnalogStick(AnalogStick::RightYPositive)),
-            (Key::G, KeyType::AnalogStick(AnalogStick::RightYNegative)),
-            (Key::F, KeyType::AnalogStick(AnalogStick::RightXNegative)),
-            (Key::H, KeyType::AnalogStick(AnalogStick::RightXPositive)),
-        ]
-        .into_iter()
-        .collect::<HashMap<Key, KeyType>>()];
+        let buttons = vec![
+            [
+                //Sticks
+                (Key::X, KeyType::Button(ButtonCode::LeftStick)),
+                (Key::B, KeyType::Button(ButtonCode::RightStick)),
+                //Shoulders
+                (Key::E, KeyType::Button(ButtonCode::LeftShoulder)),
+                (Key::Q, KeyType::Trigger(TriggerSide::LeftTrigger)),
+                (Key::R, KeyType::Button(ButtonCode::RightShoulder)),
+                (Key::Y, KeyType::Trigger(TriggerSide::RightTrigger)),
+                //DPad:
+                (Key::ArrowUp, KeyType::Button(ButtonCode::Up)),
+                (Key::ArrowDown, KeyType::Button(ButtonCode::Down)),
+                (Key::ArrowLeft, KeyType::Button(ButtonCode::Left)),
+                (Key::ArrowRight, KeyType::Button(ButtonCode::Right)),
+                //Buttons:
+                (Key::U, KeyType::Button(ButtonCode::ButtonA)),
+                (Key::I, KeyType::Button(ButtonCode::ButtonB)),
+                (Key::J, KeyType::Button(ButtonCode::ButtonC)),
+                (Key::K, KeyType::Button(ButtonCode::ButtonD)),
+                (Key::Num5, KeyType::Button(ButtonCode::Start)),
+                (Key::Num6, KeyType::Button(ButtonCode::Select)),
+                //Left Stick Axis
+                (Key::W, KeyType::AnalogStick(AnalogStick::LeftYPositive)),
+                (Key::S, KeyType::AnalogStick(AnalogStick::LeftYNegative)),
+                (Key::A, KeyType::AnalogStick(AnalogStick::LeftXNegative)),
+                (Key::D, KeyType::AnalogStick(AnalogStick::LeftXPositive)),
+                //Right Stick Axis,
+                (Key::T, KeyType::AnalogStick(AnalogStick::RightYPositive)),
+                (Key::G, KeyType::AnalogStick(AnalogStick::RightYNegative)),
+                (Key::F, KeyType::AnalogStick(AnalogStick::RightXNegative)),
+                (Key::H, KeyType::AnalogStick(AnalogStick::RightXPositive)),
+            ]
+            .into_iter()
+            .collect::<HashMap<Key, KeyType>>(),
+        ];
 
         Self { buttons }
     }

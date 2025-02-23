@@ -5,9 +5,9 @@ use glam::{Mat4, Vec3, Vec4};
 use wasmtime::{Caller, Linker};
 
 use crate::graphics::{
+    VirtualGpu,
     pipeline::Pipeline,
     virtual_render_pass::{Command, VirtualRenderPass},
-    VirtualGpu,
 };
 
 use super::WasmContexts;
@@ -400,10 +400,10 @@ fn load_static_mesh_indexed(
     let pipeline = Pipeline::try_from(pipeline).unwrap();
     let mem = caller.get_export("memory").unwrap().into_memory().unwrap();
     let (data, store) = mem.data_and_store_mut(&mut caller);
-    let data: &[f32] = cast_slice(&data[data_ptr as usize..]);
+    let mesh_data: &[f32] = cast_slice(&data[data_ptr as usize..]);
     let index: &[u16] = cast_slice(&data[index_ptr as usize..]);
     store.draw_3d.load_static_mesh_indexed(
-        &data[..data_len as usize],
+        &mesh_data[..data_len as usize],
         &index[..index_len as usize],
         pipeline,
     )

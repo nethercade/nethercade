@@ -5,16 +5,16 @@ use std::{
 };
 
 use eframe::egui::{self, Sense, ViewportCommand};
-use egui::{pos2, Color32, Rect, TextureId, Vec2};
+use egui::{Color32, Rect, TextureId, Vec2, pos2};
 use ggrs::{P2PSession, SessionState};
 use gilrs::Gilrs;
-use nethercade_core::{Rom, ROM_FILE_EXTENSION};
+use nethercade_core::{ROM_FILE_EXTENSION, Rom};
 
 use crate::{
     console::{
+        Console, LocalInputManager, LocalPlayerId, MouseEventCollector,
         gui::PlayModeGui,
         network_session::{self, GgrsInstance},
-        Console, LocalInputManager, LocalPlayerId, MouseEventCollector,
     },
     graphics::textures::texture_sampler_descriptor,
 };
