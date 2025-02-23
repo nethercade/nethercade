@@ -1,7 +1,10 @@
 use bytemuck::bytes_of;
 use eframe::wgpu;
 
-use super::{TEXTURE_BIND_GROUP_INDEX, VERTEX_BUFFER_INDEX, VirtualGpu, pipeline::Pipeline};
+use super::{
+    pipeline::Pipeline,
+    vgpu::{TEXTURE_BIND_GROUP_INDEX, VERTEX_BUFFER_INDEX, VirtualGpu},
+};
 pub struct VirtualRenderPass {
     pub commands: Vec<Command>,
 
@@ -16,6 +19,7 @@ pub struct VirtualRenderPass {
 
 pub enum Command {
     SetPipeline(Pipeline),
+    SetWindingOrder(bool),
     Draw(u32),                       //Vertex Count
     SetTexture(usize, usize, usize), // TextureId, Layer Index, Blend Mode
     SetMatcap(usize, usize, usize),  // Matcap Id, Layer Index, Blend Mode
@@ -165,7 +169,7 @@ impl VirtualRenderPass {
         let mut current_byte_index = 0;
         let mut current_vertex_size = 0;
         let mut current_instance = 0;
-
+        let mut clockwise_pipelines = false;
         let mut texture_state = TextureStates::default();
 
         rp.set_bind_group(
@@ -177,7 +181,9 @@ impl VirtualRenderPass {
         for command in self.commands.iter() {
             match command {
                 Command::SetPipeline(pipeline) => {
-                    rp.set_pipeline(&gpu.render_pipelines[pipeline.get_shader()]);
+                    rp.set_pipeline(
+                        gpu.get_render_pipeline(pipeline.get_shader(), clockwise_pipelines),
+                    );
                     rp.set_push_constants(
                         wgpu::ShaderStages::FRAGMENT,
                         0,
@@ -221,7 +227,9 @@ impl VirtualRenderPass {
                 }
                 Command::DrawStaticMesh(index) => {
                     let mesh = &gpu.preloaded_renderer.meshes[*index];
-                    rp.set_pipeline(&gpu.render_pipelines[mesh.pipeline.get_shader()]);
+                    rp.set_pipeline(
+                        gpu.get_render_pipeline(mesh.pipeline.get_shader(), clockwise_pipelines),
+                    );
                     rp.set_push_constants(
                         wgpu::ShaderStages::FRAGMENT,
                         0,
@@ -232,7 +240,9 @@ impl VirtualRenderPass {
                 }
                 Command::DrawStaticMeshIndexed(index) => {
                     let mesh = &gpu.preloaded_renderer.indexed_meshes[*index];
-                    rp.set_pipeline(&gpu.render_pipelines[mesh.pipeline.get_shader()]);
+                    rp.set_pipeline(
+                        gpu.get_render_pipeline(mesh.pipeline.get_shader(), clockwise_pipelines),
+                    );
                     rp.set_push_constants(
                         wgpu::ShaderStages::FRAGMENT,
                         0,
@@ -263,6 +273,9 @@ impl VirtualRenderPass {
                 }
                 Command::UpdateInstance => {
                     current_instance += 1;
+                }
+                Command::SetWindingOrder(clockwise) => {
+                    clockwise_pipelines = *clockwise;
                 }
             }
         }

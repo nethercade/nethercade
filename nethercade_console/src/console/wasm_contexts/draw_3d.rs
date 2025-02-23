@@ -63,6 +63,9 @@ impl Draw3dContext {
         linker
             .func_wrap("env", "clear_textures", clear_textures)
             .unwrap();
+        linker
+            .func_wrap("env", "set_winding_order", set_winding_order)
+            .unwrap();
 
         // Loading
         linker
@@ -176,6 +179,10 @@ impl Draw3dContext {
 
     pub fn clear_textures(&mut self) {
         self.vrp.commands.push(Command::ClearTextures);
+    }
+
+    pub fn set_winding_order(&mut self, clockwise: bool) {
+        self.vrp.commands.push(Command::SetWindingOrder(clockwise))
     }
 
     fn load_texture(&mut self, data: &[u8], width: u32, height: u32, has_alpha: bool) -> i32 {
@@ -338,6 +345,14 @@ fn clear_textures(mut caller: Caller<WasmContexts>) {
         return;
     }
     caller.data_mut().draw_3d.clear_textures();
+}
+
+fn set_winding_order(mut caller: Caller<WasmContexts>, clockwise: i32) {
+    if caller.data().draw_3d.state != DrawContextState::Draw {
+        println!("Called clear_textures outside of draw.");
+        return;
+    }
+    caller.data_mut().draw_3d.set_winding_order(clockwise != 0)
 }
 
 fn load_texture(
