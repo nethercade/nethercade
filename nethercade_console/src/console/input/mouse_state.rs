@@ -26,47 +26,47 @@ const Y_DELTA_SHIFT: u64 = 32 + u16::BITS as u64;
 
 impl MouseState {
     pub fn get_x_pos(self) -> u32 {
-        ((self.0 & MASK << X_SHIFT) >> X_SHIFT) as u32
+        ((self.0 & (MASK << X_SHIFT)) >> X_SHIFT) as u32
     }
 
     pub fn get_y_pos(self) -> u32 {
-        ((self.0 & MASK << Y_SHIFT) >> Y_SHIFT) as u32
+        ((self.0 & (MASK << Y_SHIFT)) >> Y_SHIFT) as u32
     }
 
     pub fn get_left_button_down(self) -> bool {
-        self.0 & 1 << LEFT_BUTTON_SHIFT != 0
+        self.0 & (1 << LEFT_BUTTON_SHIFT) != 0
     }
 
     pub fn get_right_button_down(self) -> bool {
-        self.0 & 1 << RIGHT_BUTTON_SHIFT != 0
+        self.0 & (1 << RIGHT_BUTTON_SHIFT) != 0
     }
 
     pub fn get_middle_button_down(self) -> bool {
-        self.0 & 1 << MIDDLE_BUTTON_SHIFT != 0
+        self.0 & (1 << MIDDLE_BUTTON_SHIFT) != 0
     }
 
     pub fn get_wheel_up(self) -> bool {
-        self.0 & 1 << WHEEL_UP != 0
+        self.0 & (1 << WHEEL_UP) != 0
     }
 
     pub fn get_wheel_down(self) -> bool {
-        self.0 & 1 << WHEEL_DOWN != 0
+        self.0 & (1 << WHEEL_DOWN) != 0
     }
 
     pub fn get_wheel_left(self) -> bool {
-        self.0 & 1 << WHEEL_LEFT != 0
+        self.0 & (1 << WHEEL_LEFT) != 0
     }
 
     pub fn get_wheel_right(self) -> bool {
-        self.0 & 1 << WHEEL_RIGHT != 0
+        self.0 & (1 << WHEEL_RIGHT) != 0
     }
 
     pub fn get_x_delta(self) -> i32 {
-        ((self.0 & DELTA_MASK << X_DELTA_SHIFT) >> X_DELTA_SHIFT) as i16 as i32
+        ((self.0 & (DELTA_MASK << X_DELTA_SHIFT)) >> X_DELTA_SHIFT) as i16 as i32
     }
 
     pub fn get_y_delta(self) -> i32 {
-        ((self.0 & DELTA_MASK << Y_DELTA_SHIFT) >> Y_DELTA_SHIFT) as i16 as i32
+        ((self.0 & (DELTA_MASK << Y_DELTA_SHIFT)) >> Y_DELTA_SHIFT) as i16 as i32
     }
 
     pub fn set_x_pos(&mut self, value: u32) {
@@ -147,9 +147,9 @@ mod tests {
         assert_eq!(out.get_x_pos(), x);
         assert_eq!(out.get_y_pos(), y);
 
-        assert_eq!(out.get_left_button_down(), false);
-        assert_eq!(out.get_middle_button_down(), false);
-        assert_eq!(out.get_right_button_down(), false);
+        assert!(!out.get_left_button_down());
+        assert!(!out.get_middle_button_down());
+        assert!(!out.get_right_button_down());
 
         out.set_x_pos(0);
         out.set_y_pos(0);
@@ -165,9 +165,9 @@ mod tests {
         out.set_left_button(true);
         out.set_middle_button(true);
         out.set_right_button(true);
-        assert_eq!(out.get_left_button_down(), true);
-        assert_eq!(out.get_middle_button_down(), true);
-        assert_eq!(out.get_right_button_down(), true);
+        assert!(out.get_left_button_down());
+        assert!(out.get_middle_button_down());
+        assert!(out.get_right_button_down());
 
         out.set_x_pos(123);
         assert_eq!(out.get_x_pos(), 123);
@@ -185,9 +185,9 @@ mod tests {
         assert_eq!(out.get_x_delta(), x);
         assert_eq!(out.get_y_delta(), y);
 
-        assert_eq!(out.get_left_button_down(), false);
-        assert_eq!(out.get_middle_button_down(), false);
-        assert_eq!(out.get_right_button_down(), false);
+        assert!(!out.get_left_button_down());
+        assert!(!out.get_middle_button_down());
+        assert!(!out.get_right_button_down());
 
         out.set_x_delta(0);
         out.set_y_delta(0);
@@ -203,9 +203,9 @@ mod tests {
         out.set_left_button(true);
         out.set_middle_button(true);
         out.set_right_button(true);
-        assert_eq!(out.get_left_button_down(), true);
-        assert_eq!(out.get_middle_button_down(), true);
-        assert_eq!(out.get_right_button_down(), true);
+        assert!(out.get_left_button_down());
+        assert!(out.get_middle_button_down());
+        assert!(out.get_right_button_down());
 
         out.set_x_delta(123);
         assert_eq!(out.get_x_delta(), 123);

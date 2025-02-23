@@ -96,8 +96,8 @@ impl eframe::App for ConsoleApp {
 
                     let mouse_pos = if let Some(hover) = response.hover_pos() {
                         let mut pos = hover - response.interact_rect.left_top();
-                        pos.x = pos.x.clamp(0.0, width as f32);
-                        pos.y = pos.y.clamp(0.0, height as f32);
+                        pos.x = pos.x.clamp(0.0, width);
+                        pos.y = pos.y.clamp(0.0, height);
                         Some(pos)
                     } else {
                         None

@@ -121,7 +121,7 @@ impl GameInstance {
             .get_memory(&mut self.store, "memory")
             .unwrap()
             .data_mut(&mut self.store)
-            .copy_from_slice(&memory);
+            .copy_from_slice(memory);
     }
 
     fn advance_frame(&mut self, inputs: Vec<(NetworkInputState, InputStatus)>) {
@@ -142,8 +142,7 @@ impl GameInstance {
 
         // Take only the "Most Recent" audio
         self.this_frame_audio.clear();
-        self.this_frame_audio
-            .extend(self.store.data_mut().audio.pushed_audio.drain(..));
+        self.this_frame_audio.append(&mut self.store.data_mut().audio.pushed_audio);
 
         // Post Update Input
         self.store
