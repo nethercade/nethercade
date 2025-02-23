@@ -142,7 +142,8 @@ impl GameInstance {
 
         // Take only the "Most Recent" audio
         self.this_frame_audio.clear();
-        self.this_frame_audio.append(&mut self.store.data_mut().audio.pushed_audio);
+        self.this_frame_audio
+            .append(&mut self.store.data_mut().audio.pushed_audio);
 
         // Post Update Input
         self.store
