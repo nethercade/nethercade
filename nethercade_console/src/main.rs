@@ -17,8 +17,10 @@ fn main() {
     let dimensions = Resolution::Compact.dimensions();
 
     let device_descriptor = std::sync::Arc::new(|_: &wgpu::Adapter| {
-        let mut limits = wgpu::Limits::default();
-        limits.max_push_constant_size = MAX_PUSH_CONSTANT_SIZE;
+        let limits = wgpu::Limits {
+            max_push_constant_size: MAX_PUSH_CONSTANT_SIZE,
+            ..Default::default()
+        };
         wgpu::DeviceDescriptor {
             label: None,
             required_features: wgpu::Features::PUSH_CONSTANTS,
